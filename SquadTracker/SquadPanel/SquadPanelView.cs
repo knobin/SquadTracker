@@ -96,7 +96,7 @@ namespace Torlando.SquadTracker.SquadPanel
             {
                 Parent = _squadMembersPanel,
                 AccountName = playerModel.AccountName,
-                CharacterName = playerModel.CurrentCharacter.Name,
+                CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "",
                 Icon = icon,
                 BasicTooltipText = OtherCharactersToString(otherCharacters),
             };
@@ -109,6 +109,17 @@ namespace Torlando.SquadTracker.SquadPanel
             _playerDisplays.Add(playerModel.AccountName, playerDisplay);
 
             _squadMembersPanel.BasicTooltipText = "";
+        }
+
+        public void UpdatePlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
+        {
+            if(!_playerDisplays.TryGetValue(playerModel.AccountName, out var display)) return;
+
+            display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
+            display.Icon = icon;
+
+            var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
+            display.BasicTooltipText = OtherCharactersToString(otherCharacters);
         }
 
         private void UpdateSelectedRoles(Player playerModel, ValueChangedEventArgs e, int index)
@@ -136,7 +147,7 @@ namespace Torlando.SquadTracker.SquadPanel
         {
             if (!_playerDisplays.TryGetValue(playerModel.AccountName, out var display)) return;
 
-            display.CharacterName = playerModel.CurrentCharacter.Name;
+            display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
             display.Icon = icon;
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();

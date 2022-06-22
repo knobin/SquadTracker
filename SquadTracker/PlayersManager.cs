@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Blish_HUD;
-using Blish_HUD.ArcDps;
-using Blish_HUD.ArcDps.Common;
+using BridgeHandler;
 
 namespace Torlando.SquadTracker
 {
@@ -11,23 +10,29 @@ namespace Torlando.SquadTracker
         public delegate void PlayerJoinedInstanceHandler(Player newPlayer);
         public delegate void PlayerLeftInstanceHandler(string accountName);
         public delegate void CharacterChangedSpecializationHandler(Character character);
+        public delegate void PlayerUpdatedHandler(Player newPlayer);
 
         public event PlayerJoinedInstanceHandler PlayerJoinedInstance;
         public event PlayerLeftInstanceHandler PlayerLeftInstance;
+        public event PlayerUpdatedHandler PlayerUpdated;
         public event CharacterChangedSpecializationHandler CharacterChangedSpecialization;
-
-        private readonly ArcDpsService _arcDpsService;
 
         private readonly IDictionary<string, Player> _players = new Dictionary<string, Player>();
         private readonly IDictionary<string, Character> _characters = new Dictionary<string, Character>();
 
-        public PlayersManager(ArcDpsService arcDpsService)
-        {
-            _arcDpsService = arcDpsService;
+        private Handler _bridgeHandler;
+        private string _self = "";
 
-            _arcDpsService.Common.PlayerAdded += OnPlayerJoinedInstance;
-            _arcDpsService.RawCombatEvent += OnSomeoneDidSomething;
-            _arcDpsService.Common.PlayerRemoved += OnPlayerLeftInstance;
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
+
+        public PlayersManager(Handler bridgeHandler)
+        {
+            _bridgeHandler = bridgeHandler;
+
+            _bridgeHandler.OnSquadInfoEvent += OnSquadInfo;
+            _bridgeHandler.OnPlayerAddedEvent += OnPlayerAdd;
+            _bridgeHandler.OnPlayerRemovedEvent += OnPlayerRemove;
+            _bridgeHandler.OnPlayerUpdateEvent += OnPlayerUpdate;
         }
 
         public IReadOnlyCollection<Player> GetPlayers()
@@ -35,58 +40,102 @@ namespace Torlando.SquadTracker
             return _players.Values.ToList(); // Return a clone.
         }
 
-        private void OnPlayerJoinedInstance(CommonFields.Player arcDpsPlayer)
+        private void OnSquadInfo(Handler.SquadInfoEvent squad)
         {
-            if (_characters.TryGetValue(arcDpsPlayer.CharacterName, out var character))
+            _self = squad.Self;
+
+            foreach (Handler.PlayerInfo pi in squad.Members)
+                OnPlayerAdd(pi);
+        }
+
+        private void OnPlayerAdd(Handler.PlayerInfo playerInfo)
+        {
+            Character character = null;
+
+            if (playerInfo.CharacterName != null && playerInfo.CharacterName != "")
             {
-                character.Specialization = arcDpsPlayer.Elite;
-            }
-            else
-            {
-                character = new Character(arcDpsPlayer.CharacterName, arcDpsPlayer.Profession, arcDpsPlayer.Elite);
-                _characters.Add(character.Name, character);
+                if (_characters.TryGetValue(playerInfo.CharacterName, out var ch))
+                {
+                    character = ch;
+                    character.Specialization = playerInfo.Elite;
+                }
+                else
+                {
+                    character = new Character(playerInfo.CharacterName, playerInfo.Profession, playerInfo.Elite);
+                    _characters.Add(character.Name, character);
+                }
             }
 
-            if (_players.TryGetValue(arcDpsPlayer.AccountName, out var player))
+            if (_players.TryGetValue(playerInfo.AccountName, out var player))
             {
                 player.CurrentCharacter = character;
                 player.IsInInstance = true;
             }
             else
             {
-                player = new Player(arcDpsPlayer.AccountName, character);
+                player = new Player(playerInfo.AccountName, character);
                 _players.Add(player.AccountName, player);
             }
 
             this.PlayerJoinedInstance?.Invoke(player);
         }
 
-        private void OnSomeoneDidSomething(object sender, RawCombatEventArgs e)
+        private void OnPlayerRemove(Handler.PlayerInfo playerInfo)
         {
-            // Focus only on events tracing combat actions.
-            if (e.CombatEvent.Ev == null) return;
-
-            var src = e.CombatEvent.Src;
-            if (_characters.TryGetValue(src.Name, out var srcCharacter) && srcCharacter.Specialization != src.Elite)
+            Logger.Info("Removing {}", playerInfo.AccountName);
+            if (_self == playerInfo.AccountName)
             {
-                srcCharacter.Specialization = src.Elite;
-                this.CharacterChangedSpecialization?.Invoke(srcCharacter);
+                Logger.Info("Removing self! {}", playerInfo.AccountName);
+                List<string> keys = new List<string>(_players.Keys);
+                foreach (string key in keys)
+                {
+                    _players[key].IsInInstance = false;
+                    this.PlayerLeftInstance?.Invoke(_players[key].AccountName);
+                }
             }
-
-            var dst = e.CombatEvent.Dst;
-            if (_characters.TryGetValue(dst.Name, out var dstCharacter) && dstCharacter.Specialization != dst.Elite)
+            else
             {
-                dstCharacter.Specialization = dst.Elite;
-                this.CharacterChangedSpecialization?.Invoke(dstCharacter);
+                if (!_players.TryGetValue(playerInfo.AccountName, out var player)) return;
+
+                player.IsInInstance = false;
+                this.PlayerLeftInstance?.Invoke(player.AccountName);
             }
         }
 
-        private void OnPlayerLeftInstance(CommonFields.Player arcDpsPlayer)
+        private void OnPlayerUpdate(Handler.PlayerInfo playerInfo)
         {
-            if (!_players.TryGetValue(arcDpsPlayer.AccountName, out var player)) return;
-
-            player.IsInInstance = false;
-            this.PlayerLeftInstance?.Invoke(player.AccountName);
+            Logger.Info("Update {} : {}", playerInfo.AccountName, (playerInfo.CharacterName != null) ? playerInfo.CharacterName : "");
+            if (playerInfo.CharacterName != null)
+            {
+                if (_characters.TryGetValue(playerInfo.CharacterName, out var srcCharacter))
+                {
+                    if (srcCharacter.Specialization != playerInfo.Elite)
+                    {
+                        srcCharacter.Specialization = playerInfo.Elite;
+                        this.CharacterChangedSpecialization?.Invoke(srcCharacter);
+                    }
+                    if (_players.TryGetValue(playerInfo.AccountName, out var player))
+                    {
+                        player.CurrentCharacter = srcCharacter;
+                        player.IsInInstance = true;
+                        this.PlayerUpdated?.Invoke(player);
+                    }
+                }
+                else
+                {
+                    Logger.Info("Adding Character: {}", playerInfo.CharacterName);
+                    Character character = new Character(playerInfo.CharacterName, playerInfo.Profession, playerInfo.Elite);
+                    _characters.Add(character.Name, character);
+                    
+                    if (_players.TryGetValue(playerInfo.AccountName, out var player))
+                    {
+                        Logger.Info("Adding Character: {} : to user {}", playerInfo.CharacterName, playerInfo.AccountName);
+                        player.CurrentCharacter = character;
+                        player.IsInInstance = true;
+                        this.PlayerUpdated?.Invoke(player);
+                    }
+                }
+            }
         }
     }
 }

@@ -46,6 +46,7 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadManager.PlayerJoinedSquad += AddPlayer;
             _playersManager.CharacterChangedSpecialization += ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad += RemovePlayer;
+            _squadManager.PlayerUpdateSquad += UpdatePlayer;
         }
 
         protected override void Unload()
@@ -54,12 +55,13 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadManager.PlayerJoinedSquad -= AddPlayer;
             _playersManager.CharacterChangedSpecialization -= ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad -= RemovePlayer;
+            _squadManager.PlayerUpdateSquad -= UpdatePlayer;
         }
 
         private void AddPlayer(Player player, bool isReturning)
         {
-            var character = player.CurrentCharacter;
-            var icon = _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization);
+            Character character = player.CurrentCharacter;
+            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
             if (isReturning)
             {
@@ -71,9 +73,17 @@ namespace Torlando.SquadTracker.SquadPanel
             }
         }
 
+        private void UpdatePlayer(Player player)
+        {
+            Character character = player.CurrentCharacter;
+            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
+
+            View.UpdatePlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
+        }
+
         private void ChangeCharacterSpecialization(Character character)
         {
-            var icon = _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization);
+            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
             View.SetPlayerIcon(character.Player, icon);
         }
 

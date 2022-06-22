@@ -5,10 +5,12 @@ namespace Torlando.SquadTracker.SquadPanel
     class SquadManager
     {
         public delegate void PlayerJoinedSquadHandler(Player player, bool isReturning);
+        public delegate void PlayerUpdateSquadHandler(Player player);
         public delegate void PlayerLeftSquadHandler(string accountName);
 
         public event PlayerJoinedSquadHandler PlayerJoinedSquad;
         public event PlayerLeftSquadHandler PlayerLeftSquad;
+        public event PlayerUpdateSquadHandler PlayerUpdateSquad;
 
         private readonly PlayersManager _playersManager;
 
@@ -28,6 +30,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
             _playersManager.PlayerJoinedInstance += OnPlayerJoinedInstance;
             _playersManager.PlayerLeftInstance += OnPlayerLeftInstance;
+            _playersManager.PlayerUpdated += OnPlayerUpdate;
         }
 
         public Squad GetSquad()
@@ -58,6 +61,13 @@ namespace Torlando.SquadTracker.SquadPanel
             _squad.FormerMembers.Add(player);
 
             PlayerLeftSquad?.Invoke(accountName);
+        }
+
+        private void OnPlayerUpdate(Player player)
+        {
+            // TODO: Handle subgroup information here.
+
+            PlayerUpdateSquad?.Invoke(player);
         }
     }
 }

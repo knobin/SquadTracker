@@ -13,10 +13,13 @@ namespace Torlando.SquadTracker
             set
             {
                 _currentCharacter = value;
-                if (!_knownCharacters.Contains(value))
+                if (_currentCharacter != null)
                 {
-                    _knownCharacters.Add(value);
-                    value.Player = this;
+                    if (!_knownCharacters.Contains(value))
+                    {
+                        _knownCharacters.Add(value);
+                        value.Player = this;
+                    }
                 }
             }
         }
@@ -26,6 +29,12 @@ namespace Torlando.SquadTracker
         {
             AccountName = accountName;
             CurrentCharacter = currentCharacter;
+        }
+
+        public Player(string accountName)
+        {
+            AccountName = accountName;
+            CurrentCharacter = null;
         }
 
         private Character _currentCharacter;

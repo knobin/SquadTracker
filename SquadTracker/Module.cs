@@ -3,6 +3,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using BridgeHandler;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.ObjectModel;
@@ -23,11 +24,11 @@ namespace Torlando.SquadTracker
 
         private static readonly Logger Logger = Logger.GetLogger<Module>();
 
-        private ArcDpsTimeoutChecker _arcDpsTimeoutChecker;
         private PlayersManager _playersManager;
         private SquadManager _squadManager;
         private PlayerIconsManager _playerIconsManager;
         private ObservableCollection<Role> _customRoles;
+        private Handler _bridgeHandler;
 
         #region Service Managers
         internal SettingsManager SettingsManager => this.ModuleParameters.SettingsManager;
@@ -127,7 +128,8 @@ namespace Torlando.SquadTracker
         /// </summary>
         protected override void OnModuleLoaded(EventArgs e)
         {
-            _playersManager = new PlayersManager(GameService.ArcDps);
+            _bridgeHandler = new Handler();
+            _playersManager = new PlayersManager(_bridgeHandler);
             _squadManager = new SquadManager(_playersManager);
 
             _newTab = GameService.Overlay.BlishHudWindow.AddTab(
@@ -140,15 +142,7 @@ namespace Torlando.SquadTracker
                 name: "Squad Tracker Tab"
             );
 
-            _arcDpsTimeoutChecker = new ArcDpsTimeoutChecker(GameService.ArcDps, GameService.Overlay, GameService.Gw2Mumble);
-            _arcDpsTimeoutChecker.ArcDpsTimedOut += (o, e) =>
-            {
-                Logger.Debug("Lost connexion to ArcDPS… Retrying.");
-                _arcDpsTimeoutChecker.Enable();
-            };
-
-            GameService.ArcDps.Common.Activate();
-            _arcDpsTimeoutChecker.Enable();
+            _bridgeHandler.Start((byte)Handler.MessageType.Squad);
 
             // Base handler must be called
             base.OnModuleLoaded(e);
@@ -160,12 +154,13 @@ namespace Torlando.SquadTracker
 
         protected override void Update(GameTime gameTime)
         {
-            _arcDpsTimeoutChecker.Check(gameTime);
+            
         }
 
         // happens when you disable the module
         protected override void Unload()
         {
+            _bridgeHandler.Stop();
             GameService.Overlay.BlishHudWindow.RemoveTab(_newTab);
         }
     }

@@ -20,7 +20,10 @@ namespace Torlando.SquadTracker.SquadPanel
             set 
             {
                 _characterName = value;
-                Text = $"{CharacterName} ({AccountName})";
+                if (_characterName != "")
+                    Text = $"{CharacterName} ({AccountName})";
+                else
+                    Text = $"{AccountName}";
             } 
         }
         private string _characterName;
@@ -33,7 +36,10 @@ namespace Torlando.SquadTracker.SquadPanel
             set
             {
                 _accountName = value;
-                Text = $"{CharacterName} ({AccountName})";
+                if (_characterName != "")
+                    Text = $"{CharacterName} ({AccountName})";
+                else
+                    Text = $"{AccountName}";
             } 
         }
         private string _accountName;
