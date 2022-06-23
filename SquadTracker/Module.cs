@@ -142,7 +142,8 @@ namespace Torlando.SquadTracker
                 name: "Squad Tracker Tab"
             );
 
-            _bridgeHandler.Start((byte)Handler.MessageType.Squad);
+            Handler.Subscribe sub = new Handler.Subscribe() { Squad = true };
+            _bridgeHandler.Start(sub);
 
             // Base handler must be called
             base.OnModuleLoaded(e);
