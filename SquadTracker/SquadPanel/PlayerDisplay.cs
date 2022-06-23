@@ -20,10 +20,7 @@ namespace Torlando.SquadTracker.SquadPanel
             set 
             {
                 _characterName = value;
-                if (_characterName != "")
-                    Text = $"{CharacterName} ({AccountName})";
-                else
-                    Text = $"{AccountName}";
+                UpdateText();
             } 
         }
         private string _characterName;
@@ -36,13 +33,32 @@ namespace Torlando.SquadTracker.SquadPanel
             set
             {
                 _accountName = value;
-                if (_characterName != "")
-                    Text = $"{CharacterName} ({AccountName})";
-                else
-                    Text = $"{AccountName}";
+                UpdateText();
             } 
         }
         private string _accountName;
+
+        public uint Subgroup
+        {
+            get
+            {
+                return _subgroup;
+            }
+            set
+            {
+                _subgroup = value;
+                UpdateText();
+            }
+        }
+        private uint _subgroup = 0;
+
+        private void UpdateText()
+        {
+            if (_characterName != "")
+                Text = $"{_characterName} ({_accountName})\nSubgroup: {_subgroup}";
+            else
+                Text = $"{_accountName}\nSubgroup: {_subgroup}";
+        }
 
         private Image _roleIcon1 = new Image { Size = new Point(27, 27) };
         private Image _roleIcon2 = new Image { Size = new Point(27, 27) };

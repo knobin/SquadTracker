@@ -116,7 +116,7 @@ namespace Torlando.SquadTracker.SquadPanel
         public void AddTestPlayer()
         {
             var character = new Character("Frodo", 2, 18);
-            var player = new Player("test.1234", character);
+            var player = new Player("test.1234", character, 1);
 
             AddPlayer(player, false);
         }

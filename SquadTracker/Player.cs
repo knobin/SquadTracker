@@ -6,6 +6,7 @@ namespace Torlando.SquadTracker
     {
         public string AccountName { get; set; }
         public bool IsInInstance { get; set; } = true;
+        public uint Subgroup { get; set; } = 0;
 
         public Character CurrentCharacter
         {
@@ -25,10 +26,11 @@ namespace Torlando.SquadTracker
         }
         public IReadOnlyCollection<Character> KnownCharacters => _knownCharacters;
 
-        public Player(string accountName, Character currentCharacter)
+        public Player(string accountName, Character currentCharacter, uint subgroup)
         {
             AccountName = accountName;
             CurrentCharacter = currentCharacter;
+            Subgroup = subgroup;
         }
 
         public Player(string accountName)

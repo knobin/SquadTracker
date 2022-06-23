@@ -97,6 +97,7 @@ namespace Torlando.SquadTracker.SquadPanel
                 Parent = _squadMembersPanel,
                 AccountName = playerModel.AccountName,
                 CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "",
+                Subgroup = playerModel.Subgroup,
                 Icon = icon,
                 BasicTooltipText = OtherCharactersToString(otherCharacters),
             };

@@ -70,10 +70,11 @@ namespace Torlando.SquadTracker
             {
                 player.CurrentCharacter = character;
                 player.IsInInstance = true;
+                player.Subgroup = (uint)playerInfo.Subgroup + 1;
             }
             else
             {
-                player = new Player(playerInfo.AccountName, character);
+                player = new Player(playerInfo.AccountName, character, (uint)playerInfo.Subgroup + 1);
                 _players.Add(player.AccountName, player);
             }
 
