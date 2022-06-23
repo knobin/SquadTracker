@@ -16,15 +16,14 @@ namespace Torlando.SquadTracker.SquadPanel
         private FlowPanel _formerSquadMembersPanel;
         private StandardButton _clearFormerSquadButton;
         private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
+        private Dropdown _sortDropdown;
+        private readonly IEnumerable<Role> _roles;
 
-        #if DEBUG
-        private StandardButton _addPlayerButton;
-        private StandardButton _removeButton;
-        #endif
         #endregion
 
-        public SquadPanelView()
+        public SquadPanelView(ICollection<Role> roles)
         {
+            _roles = roles;
         }
 
         protected override void Build(Container buildPanel)
@@ -63,29 +62,43 @@ namespace Torlando.SquadTracker.SquadPanel
                 Presenter.ClearFormerSquadMembers();
             };
 
-#if DEBUG
-            _addPlayerButton = new StandardButton
+            _sortDropdown = new Dropdown()
             {
                 Parent = buildPanel,
-                Text = "Add Player",
+                Width = 135,
                 Location = new Point(_squadMembersPanel.ContentRegion.Right - 135, _squadMembersPanel.Top + 5)
             };
-            _addPlayerButton.Click += delegate
+
+            _sortDropdown.Items.Add("Subgroup");
+
+            _sortDropdown.ValueChanged += delegate
             {
-                Presenter.AddTestPlayer();
+                Sort();
             };
 
-            _removeButton = new StandardButton
+            /*foreach (var role in _roles.OrderBy(role => role.Name.ToLowerInvariant()))
             {
-                Parent = buildPanel,
-                Text = "Remove",
-                Location = new Point(_addPlayerButton.Location.X - 135, _squadMembersPanel.Top + 5)
-            };
-            _removeButton.Click += delegate
-            {
-                Presenter.RemoveTestPlayer();
-            };
-#endif
+                _sortDropdown.Items.Add(role.Name);
+            }*/
+        }
+
+        private static int CompareBySubgroup(PlayerDisplay playerDisplay1, PlayerDisplay playerDisplay2)
+        {
+            return playerDisplay1.Subgroup.CompareTo(playerDisplay2.Subgroup);
+        }
+
+        /*
+        private static int CompareByRole(PlayerDisplay playerDisplay1, PlayerDisplay playerDisplay2)
+        {
+            return playerDisplay1..CompareTo(playerDisplay2.Subgroup);
+        }
+        */
+
+        private void Sort()
+        {
+            string sort = _sortDropdown.SelectedItem;
+            if (sort == "Subgroup")
+                _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -110,6 +123,8 @@ namespace Torlando.SquadTracker.SquadPanel
             _playerDisplays.Add(playerModel.AccountName, playerDisplay);
 
             _squadMembersPanel.BasicTooltipText = "";
+
+            Sort();
         }
 
         public void UpdatePlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -121,6 +136,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
+            Sort();
         }
 
         private void UpdateSelectedRoles(Player playerModel, ValueChangedEventArgs e, int index)
@@ -128,6 +144,7 @@ namespace Torlando.SquadTracker.SquadPanel
             var role = e.CurrentValue;
             var accountName = playerModel.AccountName;
             Presenter.UpdateSelectedRoles(accountName, role, index);
+            Sort();
         }
 
         public void SetPlayerIcon(Player playerModel, AsyncTexture2D icon)
@@ -155,6 +172,7 @@ namespace Torlando.SquadTracker.SquadPanel
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
 
             display.Parent = _squadMembersPanel;
+            Sort();
         }
 
         private static string OtherCharactersToString(IReadOnlyCollection<Character> characters)

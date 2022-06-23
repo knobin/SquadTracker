@@ -32,7 +32,7 @@ namespace Torlando.SquadTracker.MainScreen
 
         private IView CreateSquadView()
         {
-            var view = new SquadPanelView();
+            var view = new SquadPanelView(_roles);
             var presenter = new SquadPanelPresenter(view, _playersManager, _squadManager, _iconsManager, _roles);
             return view.WithPresenter(presenter);
         }

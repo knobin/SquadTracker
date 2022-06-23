@@ -110,22 +110,5 @@ namespace Torlando.SquadTracker.SquadPanel
         {
             _squad.SetRole(accountName, role, index);
         }
-
-#if DEBUG
-
-        public void AddTestPlayer()
-        {
-            var character = new Character("Frodo", 2, 18);
-            var player = new Player("test.1234", character, 1);
-
-            AddPlayer(player, false);
-        }
-
-        public void RemoveTestPlayer()
-        {
-            View.MovePlayerToFormerMembers("test.1234");
-        }
-
-#endif
     }
 }
