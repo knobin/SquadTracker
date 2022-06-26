@@ -54,12 +54,12 @@ namespace BridgeHandler
 
         public class PlayerInfo
         {
-            public string AccountName { get; set; }
-            public string CharacterName { get; set; }
-            public UInt32 Profession { get; set; }
-            public UInt32 Elite { get; set; }
-            public Byte Role { get; set; }
-            public Byte Subgroup { get; set; }
+            public string accountName { get; set; }
+            public string characterName { get; set; }
+            public UInt32 profession { get; set; }
+            public UInt32 elite { get; set; }
+            public Byte role { get; set; }
+            public Byte subgroup { get; set; }
         }
 
         public class ArcEvent
@@ -72,20 +72,49 @@ namespace BridgeHandler
             public string skillname { get; set; }
         }
 
+        public class SquadStatus
+        {
+            public string self { get; set; }
+            public PlayerInfo[] members { get; set; }
+        }
+
+        private class StatusEvent
+        {
+            public bool success { get; set; }
+            public string error { get; set; }
+        }
+
+        public class BridgeInfo
+        {
+            public string version { get; set; }
+            public string extrasVersion { get; set; }
+            public string arcVersion { get; set; }
+            public bool arcLoaded { get; set; }
+            public bool extrasLoaded { get; set; }
+        }
+
+        private class SquadPlayerEvent
+        {
+            public string source { get; set; }
+            public PlayerInfo member { get; set; }
+        }
+
         private class SquadData
         {
-            public string type { get; set; }
-            public string self { get; set; }
             public string trigger { get; set; }
-            public PlayerInfo[] members { get; set; }
-            public PlayerInfo member { get; set; }
+            public SquadStatus status { get; set; }
+            public SquadPlayerEvent add { get; set; }
+            public SquadPlayerEvent remove { get; set; }
+            public SquadPlayerEvent update { get; set; }
         }
 
         private class BridgeEvent
         {
             public string type { get; set; }
+            public StatusEvent status { get; set; }
+            public BridgeInfo info { get; set; }
             public ArcEvent combat { get; set; }
-            public PlayerInfo extra { get; set; }
+            public PlayerInfo extras { get; set; }
             public SquadData squad { get; set; }
         }
 
@@ -114,26 +143,10 @@ namespace BridgeHandler
             stream.Write(messageBytes, 0, messageBytes.Length);
         }
 
-        public class BridgeInfo
-        {
-            public string type { get; set; }
-            public string Version { get; set; }
-            public string ExtraVersion { get; set; }
-            public string ArcVersion { get; set; }
-            public bool ArcLoaded { get; set; }
-            public bool ExtraLoaded { get; set; }
-        }
-
-        public class SquadInfoEvent
-        {
-            public string Self { get; set; }
-            public PlayerInfo[] Members { get; set; }
-        }
-
         public class Subscribe
         {
             public bool Combat { get; set; }
-            public bool Extra { get; set; }
+            public bool Extras { get; set; }
             public bool Squad { get; set; }
         }
 
@@ -141,16 +154,16 @@ namespace BridgeHandler
         {
             NONE = 0,
             Combat = 1,
-            Extra = 2,
+            Extras = 2,
             Squad = 4
         }
 
-        public delegate void SquadInfo(SquadInfoEvent squad);
+        public delegate void SquadInfo(SquadStatus squad);
         public delegate void PlayerChange(PlayerInfo player);
         public delegate void ArcMessage(ArcEvent evt);
 
         // Squad information events.
-        public event SquadInfo OnSquadInfoEvent;
+        public event SquadInfo OnSquadStatusEvent;
         public event PlayerChange OnPlayerAddedEvent;
         public event PlayerChange OnPlayerUpdateEvent;
         public event PlayerChange OnPlayerRemovedEvent;
@@ -182,8 +195,8 @@ namespace BridgeHandler
             _tData.EnabledTypes = (Byte)MessageType.NONE;
             if (subscribe.Combat)
                 _tData.EnabledTypes |= (Byte)MessageType.Combat;
-            if (subscribe.Extra)
-                _tData.EnabledTypes |= (Byte)MessageType.Extra;
+            if (subscribe.Extras)
+                _tData.EnabledTypes |= (Byte)MessageType.Extras;
             if (subscribe.Squad)
                 _tData.EnabledTypes |= (Byte)MessageType.Squad;
 
@@ -214,12 +227,6 @@ namespace BridgeHandler
             return _tData.Run;
         }
 
-        private class SubscribeStatus
-        {
-            public bool success { get; set; }
-            public string error { get; set; }
-        }
-
         private static void PipeThreadMain(Object parameterData)
         {
             ThreadData tData = (ThreadData)parameterData;
@@ -244,8 +251,9 @@ namespace BridgeHandler
 
                 // Read BridgeInfo.
                 String infoData = ReadFromPipe(tData.ClientStream);
-                BridgeInfo bInfo = JsonSerializer.Deserialize<BridgeInfo>(infoData)!;
-                if (!bInfo.ArcLoaded && !bInfo.ExtraLoaded)
+                BridgeEvent bEvent = JsonSerializer.Deserialize<BridgeEvent>(infoData)!;
+                BridgeInfo bInfo = bEvent.info;
+                if (!bInfo.arcLoaded && !bInfo.extrasLoaded)
                 {
                     // Both ArcDPS and Unofficial Extras is needed for squad events.
                     tData.Run = false;
@@ -261,8 +269,9 @@ namespace BridgeHandler
                 WriteToPipe(tData.ClientStream, sub);
 
                 // Read return status.
-                String statusStr = ReadFromPipe(tData.ClientStream);
-                SubscribeStatus status = JsonSerializer.Deserialize<SubscribeStatus>(statusStr)!;
+                String statusData = ReadFromPipe(tData.ClientStream);
+                bEvent = JsonSerializer.Deserialize<BridgeEvent>(statusData)!;
+                StatusEvent status = bEvent.status;
                 if (!status.success)
                 {
                     // Server closes pipe here.
@@ -276,8 +285,8 @@ namespace BridgeHandler
                 while (tData.Run && tData.ClientStream.IsConnected)
                 {
                     String data = ReadFromPipe(tData.ClientStream);
-                    BridgeEvent evt = JsonSerializer.Deserialize<BridgeEvent>(data)!;
-                    tData.Handle.HandleBrideEvent(evt, tData);
+                    bEvent = JsonSerializer.Deserialize<BridgeEvent>(data)!;
+                    tData.Handle.HandleBrideEvent(bEvent, tData);
                 }
 
                 // Stream is not connected here, or tData.Run is false.
@@ -296,15 +305,16 @@ namespace BridgeHandler
         }
         private static class EventType
         {
-            public const string Info = "Info";      // Bridge Information.
-            public const string Squad = "Squad";    // Squad information (initial squad data | player added, updated, or removed).
-            public const string Combat = "Combat";  // ArcDPS event.
-            public const string Extra = "Extra";    // Unofficial Extras event.
+            public const string Info = "info";      // Bridge Information.
+            public const string Status = "status";      // Status.
+            public const string Squad = "squad";    // Squad information (initial squad data | player added, updated, or removed).
+            public const string Combat = "combat";  // ArcDPS event.
+            public const string Extras = "extras";    // Unofficial Extras event.
         }
 
         private void HandleBrideEvent(BridgeEvent evt, ThreadData tData)
         {
-            // "Info" will never be handled here.
+            // "info" and "status" will never be handled here.
 
             if (evt.type == EventType.Squad && evt.squad != null)
             {
@@ -314,9 +324,9 @@ namespace BridgeHandler
             {
                 tData.Handle.OnArcEvent?.Invoke(evt.combat);
             }
-            else if (evt.type == EventType.Extra && evt.extra != null)
+            else if (evt.type == EventType.Extras && evt.extras != null)
             {
-                tData.Handle.OnExtrasEvent?.Invoke(evt.extra);
+                tData.Handle.OnExtrasEvent?.Invoke(evt.extras);
             }
         }
 
@@ -330,30 +340,25 @@ namespace BridgeHandler
 
         private void HandleSquadEvent(SquadData sq, ThreadData tData)
         {
-            if (sq.trigger == SquadTriggers.Status)
+            if (sq.trigger == SquadTriggers.Status && sq.status != null)
             {
-                SquadInfoEvent squadInfoEvent = new SquadInfoEvent
-                {
-                    Self = sq.self,
-                    Members = sq.members
-                };
-                tData.Handle.OnSquadInfoEvent?.Invoke(squadInfoEvent);
+                tData.Handle.OnSquadStatusEvent?.Invoke(sq.status);
             }
             else
             {
                 // Player information events.
 
-                if (sq.trigger == SquadTriggers.Update)
+                if (sq.trigger == SquadTriggers.Update && sq.update != null)
                 {
-                    tData.Handle.OnPlayerUpdateEvent?.Invoke(sq.member);
+                    tData.Handle.OnPlayerUpdateEvent?.Invoke(sq.update.member);
                 }
-                else if (sq.trigger == SquadTriggers.Added)
+                else if (sq.trigger == SquadTriggers.Added && sq.add != null)
                 {
-                    tData.Handle.OnPlayerAddedEvent?.Invoke(sq.member);
+                    tData.Handle.OnPlayerAddedEvent?.Invoke(sq.add.member);
                 }
-                else if (sq.trigger == SquadTriggers.Removed)
+                else if (sq.trigger == SquadTriggers.Removed && sq.remove != null)
                 {
-                    tData.Handle.OnPlayerRemovedEvent?.Invoke(sq.member);
+                    tData.Handle.OnPlayerRemovedEvent?.Invoke(sq.remove.member);
                 }
             }
         }

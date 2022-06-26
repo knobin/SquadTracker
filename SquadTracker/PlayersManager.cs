@@ -29,7 +29,7 @@ namespace Torlando.SquadTracker
         {
             _bridgeHandler = bridgeHandler;
 
-            _bridgeHandler.OnSquadInfoEvent += OnSquadInfo;
+            _bridgeHandler.OnSquadStatusEvent += OnSquadInfo;
             _bridgeHandler.OnPlayerAddedEvent += OnPlayerAdd;
             _bridgeHandler.OnPlayerRemovedEvent += OnPlayerRemove;
             _bridgeHandler.OnPlayerUpdateEvent += OnPlayerUpdate;
@@ -40,11 +40,11 @@ namespace Torlando.SquadTracker
             return _players.Values.ToList(); // Return a clone.
         }
 
-        private void OnSquadInfo(Handler.SquadInfoEvent squad)
+        private void OnSquadInfo(Handler.SquadStatus squad)
         {
-            _self = squad.Self;
+            _self = squad.self;
 
-            foreach (Handler.PlayerInfo pi in squad.Members)
+            foreach (Handler.PlayerInfo pi in squad.members)
                 OnPlayerAdd(pi);
         }
 
@@ -52,29 +52,29 @@ namespace Torlando.SquadTracker
         {
             Character character = null;
 
-            if (playerInfo.CharacterName != null && playerInfo.CharacterName != "")
+            if (playerInfo.characterName != null && playerInfo.characterName != "")
             {
-                if (_characters.TryGetValue(playerInfo.CharacterName, out var ch))
+                if (_characters.TryGetValue(playerInfo.characterName, out var ch))
                 {
                     character = ch;
-                    character.Specialization = playerInfo.Elite;
+                    character.Specialization = playerInfo.elite;
                 }
                 else
                 {
-                    character = new Character(playerInfo.CharacterName, playerInfo.Profession, playerInfo.Elite);
+                    character = new Character(playerInfo.characterName, playerInfo.profession, playerInfo.elite);
                     _characters.Add(character.Name, character);
                 }
             }
 
-            if (_players.TryGetValue(playerInfo.AccountName, out var player))
+            if (_players.TryGetValue(playerInfo.accountName, out var player))
             {
                 player.CurrentCharacter = character;
                 player.IsInInstance = true;
-                player.Subgroup = (uint)playerInfo.Subgroup + 1;
+                player.Subgroup = (uint)playerInfo.subgroup;
             }
             else
             {
-                player = new Player(playerInfo.AccountName, character, (uint)playerInfo.Subgroup + 1);
+                player = new Player(playerInfo.accountName, character, (uint)playerInfo.subgroup);
                 _players.Add(player.AccountName, player);
             }
 
@@ -83,10 +83,10 @@ namespace Torlando.SquadTracker
 
         private void OnPlayerRemove(Handler.PlayerInfo playerInfo)
         {
-            Logger.Info("Removing {}", playerInfo.AccountName);
-            if (_self == playerInfo.AccountName)
+            Logger.Info("Removing {}", playerInfo.accountName);
+            if (_self == playerInfo.accountName)
             {
-                Logger.Info("Removing self! {}", playerInfo.AccountName);
+                Logger.Info("Removing self! {}", playerInfo.accountName);
                 List<string> keys = new List<string>(_players.Keys);
                 foreach (string key in keys)
                 {
@@ -96,7 +96,7 @@ namespace Torlando.SquadTracker
             }
             else
             {
-                if (!_players.TryGetValue(playerInfo.AccountName, out var player)) return;
+                if (!_players.TryGetValue(playerInfo.accountName, out var player)) return;
 
                 player.IsInInstance = false;
                 this.PlayerLeftInstance?.Invoke(player.AccountName);
@@ -105,17 +105,17 @@ namespace Torlando.SquadTracker
 
         private void OnPlayerUpdate(Handler.PlayerInfo playerInfo)
         {
-            Logger.Info("Update {} : {}", playerInfo.AccountName, (playerInfo.CharacterName != null) ? playerInfo.CharacterName : "");
-            if (playerInfo.CharacterName != null)
+            Logger.Info("Update {} : {}", playerInfo.accountName, (playerInfo.characterName != null) ? playerInfo.characterName : "");
+            if (playerInfo.characterName != null)
             {
-                if (_characters.TryGetValue(playerInfo.CharacterName, out var srcCharacter))
+                if (_characters.TryGetValue(playerInfo.characterName, out var srcCharacter))
                 {
-                    if (srcCharacter.Specialization != playerInfo.Elite)
+                    if (srcCharacter.Specialization != playerInfo.elite)
                     {
-                        srcCharacter.Specialization = playerInfo.Elite;
+                        srcCharacter.Specialization = playerInfo.elite;
                         this.CharacterChangedSpecialization?.Invoke(srcCharacter);
                     }
-                    if (_players.TryGetValue(playerInfo.AccountName, out var player))
+                    if (_players.TryGetValue(playerInfo.accountName, out var player))
                     {
                         player.CurrentCharacter = srcCharacter;
                         player.IsInInstance = true;
@@ -124,13 +124,13 @@ namespace Torlando.SquadTracker
                 }
                 else
                 {
-                    Logger.Info("Adding Character: {}", playerInfo.CharacterName);
-                    Character character = new Character(playerInfo.CharacterName, playerInfo.Profession, playerInfo.Elite);
+                    Logger.Info("Adding Character: {}", playerInfo.characterName);
+                    Character character = new Character(playerInfo.characterName, playerInfo.profession, playerInfo.elite);
                     _characters.Add(character.Name, character);
                     
-                    if (_players.TryGetValue(playerInfo.AccountName, out var player))
+                    if (_players.TryGetValue(playerInfo.accountName, out var player))
                     {
-                        Logger.Info("Adding Character: {} : to user {}", playerInfo.CharacterName, playerInfo.AccountName);
+                        Logger.Info("Adding Character: {} : to user {}", playerInfo.characterName, playerInfo.accountName);
                         player.CurrentCharacter = character;
                         player.IsInInstance = true;
                         this.PlayerUpdated?.Invoke(player);
