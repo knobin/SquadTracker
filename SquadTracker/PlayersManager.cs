@@ -136,6 +136,19 @@ namespace Torlando.SquadTracker
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
+            } 
+            else
+            {
+                // No character name here.
+
+                if (_players.TryGetValue(playerInfo.accountName, out var player))
+                {
+                    if (player.Subgroup != playerInfo.subgroup)
+                    {
+                        player.Subgroup = playerInfo.subgroup;
+                        this.PlayerUpdated?.Invoke(player);
+                    }
+                }
             }
         }
     }

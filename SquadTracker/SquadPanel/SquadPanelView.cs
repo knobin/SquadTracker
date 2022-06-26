@@ -16,7 +16,6 @@ namespace Torlando.SquadTracker.SquadPanel
         private FlowPanel _formerSquadMembersPanel;
         private StandardButton _clearFormerSquadButton;
         private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
-        private Dropdown _sortDropdown;
         private readonly IEnumerable<Role> _roles;
 
         #endregion
@@ -61,44 +60,30 @@ namespace Torlando.SquadTracker.SquadPanel
             {
                 Presenter.ClearFormerSquadMembers();
             };
-
-            _sortDropdown = new Dropdown()
-            {
-                Parent = buildPanel,
-                Width = 135,
-                Location = new Point(_squadMembersPanel.ContentRegion.Right - 135, _squadMembersPanel.Top + 5)
-            };
-
-            _sortDropdown.Items.Add("Subgroup");
-
-            _sortDropdown.ValueChanged += delegate
-            {
-                Sort();
-            };
-
-            /*foreach (var role in _roles.OrderBy(role => role.Name.ToLowerInvariant()))
-            {
-                _sortDropdown.Items.Add(role.Name);
-            }*/
         }
 
         private static int CompareBySubgroup(PlayerDisplay playerDisplay1, PlayerDisplay playerDisplay2)
         {
-            return playerDisplay1.Subgroup.CompareTo(playerDisplay2.Subgroup);
-        }
+            var cmp = playerDisplay1.Subgroup.CompareTo(playerDisplay2.Subgroup);
 
-        /*
-        private static int CompareByRole(PlayerDisplay playerDisplay1, PlayerDisplay playerDisplay2)
-        {
-            return playerDisplay1..CompareTo(playerDisplay2.Subgroup);
+            if (cmp == 0)
+            {
+                if (playerDisplay1.CharacterName != "" && playerDisplay2.CharacterName != "")
+                    return playerDisplay1.CharacterName.CompareTo(playerDisplay2.CharacterName);
+                else if (playerDisplay1.CharacterName != "" && playerDisplay2.CharacterName == "")
+                    return playerDisplay1.CharacterName.CompareTo(playerDisplay2.AccountName);
+                else if (playerDisplay1.CharacterName == "" && playerDisplay2.CharacterName != "")
+                    return playerDisplay1.AccountName.CompareTo(playerDisplay2.CharacterName);
+                else
+                    return playerDisplay1.AccountName.CompareTo(playerDisplay2.AccountName);
+            }
+
+            return cmp;
         }
-        */
 
         private void Sort()
         {
-            string sort = _sortDropdown.SelectedItem;
-            if (sort == "Subgroup")
-                _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
+            _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -133,6 +118,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
             display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
             display.Icon = icon;
+            display.Subgroup = playerModel.Subgroup;
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
@@ -167,6 +153,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
             display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
             display.Icon = icon;
+            display.Subgroup = playerModel.Subgroup;
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
