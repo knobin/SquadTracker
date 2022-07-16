@@ -4,25 +4,23 @@ A [BlishHUD](https://blishhud.com/) module for tracking squad members and their 
 
 ## Features
 
-* Automatically detect party members who enter/leave your current instance
-
-* List the known characters of each player
-
-* Keep track of the players who left your instance, and their roles
-
-* Assign up to two roles to each party member
-
-* Define your own custom roles, with custom icons (WIP)
+* Tracking players joining or leaving the squad.
+* Automatically detect party members who enter/leave your current instance.
+* List the known characters of each player.
+* Keep track of the players who left your instance, and their roles.
+* Assign up to two roles to each party member.
+* Define your own custom roles, with custom icons (WIP).
 
 ## Installation
-### Prerequisites 
-Note that this module requires [ArcDPS](https://www.deltaconnected.com/arcdps/) and the [ArcDPS Blish HUD Integration](https://github.com/blish-hud/arcdps-bhud) to function. Both of these can be downloaded manually or via the [Guild Wars 2 Unofficial Addon Manager](https://github.com/gw2-addon-loader/GW2-Addon-Manager). 
-### Recommended
-Look for SquadTracker in the [BlishHUD Module Package Manager](https://blishhud.com/docs/user/installing-modules).
 
-### Manual (not recommended)
-1. Download the lastest version SquadTracker.bhm from the [releases](https://github.com/tcwatson/SquadTracker/releases) page.
-2. Place SquadTracker.bhm in your BlishHUD modules folder, usually located at `C:\Users\YourUserName\Documents\Guild Wars 2\addons\blishhud\modules`
+Note that this module requires [ArcDPS](https://www.deltaconnected.com/arcdps/) and [arcdps_bridge](https://github.com/knobin/arcdps_bridge) to function. Both of these can be downloaded manually, arcdps_bridge has to be downloaded manually but you can download ArcDPS via the [Guild Wars 2 Unofficial Addon Manager](https://github.com/gw2-addon-loader/GW2-Addon-Manager). 
+
+This fork of SquadTracker has to be installed manually. The original SquadTracker can be found in the [BlishHUD Module Package Manager](https://blishhud.com/docs/user/installing-modules).
+
+### Building
+1. Clone the repository ```git clone https://github.com/knobin/SquadTracker.git```
+2. Open the solution file with Visual Studio and build it.
+3. Find SquadTracker.bhm in SquadTracker/bin/ and place it in your BlishHUD modules folder, usually located at `C:\Users\YourUserName\Documents\Guild Wars 2\addons\blishhud\modules`
 
 ## Usage
 After installing and enabling the module from Blish HUD, find the tab that looks like a commander tag in the main Blish HUD Window. 
@@ -34,6 +32,8 @@ The Squad Members panel shows current and former squad/party members, along with
 If a player changes characters, their previous characters are displayed in a tooltip when mousing over their box. 
 
 The Squad Roles panel allows you to add your own custom roles. At the top, type in the name of the role you want, and click Add. These roles will be saved to a file on your hard drive, and will be loaded up the next time you play. Once you've added a new role, it should be selectable from the dropdowns on the Squad Members panel.
+
+In the settings for SquadTracker, the SquadInterface can be enabled to show a view that looks like the squad interface in the game where squad members can be right clicked on to edit their roles.
 
 ### Adding custom icons (WIP)
 If you are comfortable editing a JSON file, you may add custom icons to the roles you define. The file is (usually) saved at `C:\Users\YourUserName\Documents\Guild Wars 2\addons\blishhud\squadtracker\roles.json`. Roles you add through the SquadTracker UI will appear in this JSON file. For example, here is the contents of a JSON file with two custom roles added - Tank and Banners. 
