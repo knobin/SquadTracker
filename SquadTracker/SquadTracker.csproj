@@ -77,7 +77,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArcDpsTimeoutChecker.cs" />
     <Compile Include="BridgeHandler.cs" />
     <Compile Include="Constants\Placeholder.cs" />
     <Compile Include="Helpers\IconHelper.cs" />

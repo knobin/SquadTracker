@@ -266,24 +266,28 @@ namespace Torlando.SquadTracker.SquadInterface
                 Character character = player.CurrentCharacter;
                 var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
-                if (_tiles[index].Player.Subgroup != player.Subgroup)
+                SquadInterfaceSubgroup currentSubgroup = _tiles[index].Parent as SquadInterfaceSubgroup;
+
+                if (currentSubgroup != null)
                 {
-                    SquadInterfaceSubgroup oldSubgroup = _subgroups.Find(s1 => s1.Number == _tiles[index].Player.Subgroup);
-                    SquadInterfaceSubgroup newSubgroup = _subgroups.Find(s2 => s2.Number == player.Subgroup);
-
-                    if (newSubgroup == null)
+                    if (currentSubgroup.Number != player.Subgroup)
                     {
-                        Color color = (player.Subgroup % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
-                        newSubgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor) { Parent = this };
-                        _subgroups.Add(newSubgroup);
-                    }
+                        SquadInterfaceSubgroup newSubgroup = _subgroups.Find(s2 => s2.Number == player.Subgroup);
 
-                    _tiles[index].Parent = newSubgroup;
+                        if (newSubgroup == null)
+                        {
+                            Color color = (player.Subgroup % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
+                            newSubgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor) { Parent = this };
+                            _subgroups.Add(newSubgroup);
+                        }
 
-                    if (oldSubgroup.Children.Count == 0)
-                    {
-                        oldSubgroup.Parent = null;
-                        _subgroups.Remove(oldSubgroup);
+                        _tiles[index].Parent = newSubgroup;
+
+                        if (currentSubgroup.Children.Count == 0)
+                        {
+                            currentSubgroup.Parent = null;
+                            _subgroups.Remove(currentSubgroup);
+                        }
                     }
                 }
 
