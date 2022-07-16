@@ -1,12 +1,49 @@
 ﻿using System.Collections.Generic;
+using Torlando.SquadTracker.RolesScreen;
+using System.Linq;
 
 namespace Torlando.SquadTracker
 {
     internal class Player
     {
+        public delegate void RoleUpdateHandler();
+
+        public event RoleUpdateHandler OnRoleUpdated;
+
         public string AccountName { get; set; }
         public bool IsInInstance { get; set; } = true;
+        public bool IsSelf { get; set; } = false;
+        public byte Role { get; set; } = 5;
         public uint Subgroup { get; set; } = 0;
+        public IReadOnlyCollection<Role> Roles => _roles;
+        
+        public void AddRole(Role role)
+        {
+            if (role != null)
+            {
+                if (!_roles.Contains(role))
+                {
+                    _roles.Add(role);
+                    _roles = _roles.OrderBy(r => r.Name.ToLowerInvariant()).ToList();
+                    OnRoleUpdated?.Invoke();
+                }
+            }
+        }
+
+        public void RemoveRole(Role role)
+        {
+            if (role != null)
+            {
+                if (_roles.Contains(role))
+                {
+                    _roles.Remove(role);
+                    _roles = _roles.OrderBy(r => r.Name.ToLowerInvariant()).ToList();
+                    OnRoleUpdated?.Invoke();
+                }
+            }
+        }
+
+        private List<Role> _roles = new List<Role>();
 
         public Character CurrentCharacter
         {

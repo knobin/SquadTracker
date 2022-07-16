@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Torlando.SquadTracker.SquadInterface;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -15,10 +16,12 @@ namespace Torlando.SquadTracker.SquadPanel
         private readonly PlayersManager _playersManager;
 
         private readonly Squad _squad;
+        private readonly SquadInterfaceView _squadInterfaceView;
 
-        public SquadManager(PlayersManager playersManager)
+        public SquadManager(PlayersManager playersManager, SquadInterfaceView squadInterfaceView)
         {
             _playersManager = playersManager;
+            _squadInterfaceView = squadInterfaceView;
 
             _squad = new Squad();
 
@@ -31,11 +34,17 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.PlayerJoinedInstance += OnPlayerJoinedInstance;
             _playersManager.PlayerLeftInstance += OnPlayerLeftInstance;
             _playersManager.PlayerUpdated += OnPlayerUpdate;
+            _playersManager.SelfUpdated += OnSelfUpdate;
         }
 
         public Squad GetSquad()
         {
             return _squad;
+        }
+
+        private void OnSelfUpdate(string accountName)
+        {
+            _squadInterfaceView.SelfAccountName = accountName;
         }
 
         private void OnPlayerJoinedInstance(Player newPlayer)
@@ -49,6 +58,7 @@ namespace Torlando.SquadTracker.SquadPanel
                 _squad.FormerMembers.Remove(newPlayer);
             }
 
+            _squadInterfaceView.Add(newPlayer);
             PlayerJoinedSquad?.Invoke(newPlayer, isReturning);
         }
 
@@ -60,13 +70,13 @@ namespace Torlando.SquadTracker.SquadPanel
             _squad.CurrentMembers.Remove(player);
             _squad.FormerMembers.Add(player);
 
+            _squadInterfaceView.Remove(accountName);
             PlayerLeftSquad?.Invoke(accountName);
         }
 
         private void OnPlayerUpdate(Player player)
         {
-            // TODO: Handle subgroup information here.
-
+            _squadInterfaceView.Update(player);
             PlayerUpdateSquad?.Invoke(player);
         }
     }

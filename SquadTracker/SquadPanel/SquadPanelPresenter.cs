@@ -32,12 +32,12 @@ namespace Torlando.SquadTracker.SquadPanel
 
         protected override void UpdateView()
         {
-            foreach (var member in _squad.CurrentMembers)
+            foreach (var member in _squad.CurrentMembers.ToList())
             {
                 AddPlayer(member, false);
             }
 
-            foreach (var formerMember in _squad.FormerMembers)
+            foreach (var formerMember in _squad.FormerMembers.ToList())
             {
                 AddPlayer(formerMember, false);
                 View.MovePlayerToFormerMembers(formerMember.AccountName);

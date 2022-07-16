@@ -5,6 +5,8 @@ using Microsoft.Xna.Framework;
 using System.Linq;
 using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
+using Blish_HUD;
+using Torlando.SquadTracker.Constants;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -19,6 +21,8 @@ namespace Torlando.SquadTracker.SquadPanel
         private readonly IEnumerable<Role> _roles;
 
         #endregion
+
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
 
         public SquadPanelView(ICollection<Role> roles)
         {
@@ -83,7 +87,8 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private void Sort()
         {
-            _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
+            if (_squadMembersPanel.Visible)
+                _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -99,7 +104,9 @@ namespace Torlando.SquadTracker.SquadPanel
                 Icon = icon,
                 BasicTooltipText = OtherCharactersToString(otherCharacters),
             };
- 
+
+            playerModel.OnRoleUpdated += () => OnRoleUpdate(playerDisplay, playerModel);
+
             playerDisplay.Role1Dropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 0);
             playerDisplay.Role2Dropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 1);
 
@@ -110,6 +117,20 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadMembersPanel.BasicTooltipText = "";
 
             Sort();
+        }
+
+        private void OnRoleUpdate(PlayerDisplay pd, Player player)
+        {
+            var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant());
+
+            Role role1 = player.Roles.ElementAtOrDefault(0);
+            Role role2 = player.Roles.ElementAtOrDefault(1);
+
+            string str1 = (role1 != null) ? role1.Name : Placeholder.DefaultRole;
+            string str2 = (role2 != null) ? role2.Name : Placeholder.DefaultRole;
+
+            pd.Role1Dropdown.SelectedItem = str1;
+            pd.Role2Dropdown.SelectedItem = str2;
         }
 
         public void UpdatePlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -131,6 +152,16 @@ namespace Torlando.SquadTracker.SquadPanel
             var accountName = playerModel.AccountName;
             Presenter.UpdateSelectedRoles(accountName, role, index);
             Sort();
+
+            var selectedRole = _roles.FirstOrDefault(r => r.Name.Equals(role));
+            Logger.Info("Selected role: {}, from {}, str {}", selectedRole, index, role);
+            /*
+            if (index == 0)
+                playerModel.PrimaryRole = selectedRole;
+            else if (index == 1)
+                playerModel.SecondaryRole = selectedRole;
+            */
+            playerModel.AddRole(selectedRole);
         }
 
         public void SetPlayerIcon(Player playerModel, AsyncTexture2D icon)

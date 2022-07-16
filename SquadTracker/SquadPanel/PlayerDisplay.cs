@@ -38,6 +38,8 @@ namespace Torlando.SquadTracker.SquadPanel
         }
         private string _accountName;
 
+        public byte SquadRole { get; set; } = 5;
+
         public uint Subgroup
         {
             get

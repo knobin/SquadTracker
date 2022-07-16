@@ -1,10 +1,12 @@
 ﻿using Blish_HUD;
+using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
 using BridgeHandler;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
@@ -13,6 +15,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Torlando.SquadTracker.MainScreen;
 using Torlando.SquadTracker.RolesScreen;
+using Torlando.SquadTracker.SquadInterface;
 using Torlando.SquadTracker.SquadPanel;
 
 namespace Torlando.SquadTracker
@@ -29,6 +32,7 @@ namespace Torlando.SquadTracker
         private PlayerIconsManager _playerIconsManager;
         private ObservableCollection<Role> _customRoles;
         private Handler _bridgeHandler;
+        private SquadInterfaceView _squadInterfaceView;
 
         #region Service Managers
         internal SettingsManager SettingsManager => this.ModuleParameters.SettingsManager;
@@ -44,6 +48,11 @@ namespace Torlando.SquadTracker
         #endregion
 
         private SettingEntry<bool> _areColorIconsEnabled; //todo: remove after refactor
+        public static SettingEntry<Point> _settingSquadInterfaceLocation;
+        public static SettingEntry<Point> _settingSquadInterfaceSize;
+        public static SettingEntry<bool> _settingSquadInterfaceMoving;
+        public static SettingEntry<bool> _settingSquadInterfaceVisibility;
+        private AsyncTexture2D _squadTileTexture;
 
         [ImportingConstructor]
         public Module([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -59,6 +68,30 @@ namespace Torlando.SquadTracker
                 true, () => "Enable Color Icons", 
                 () => "When enabled, replaces the monochrome icons with icons colored to match their profession color"
             );
+            _settingSquadInterfaceLocation = settings.DefineSetting(
+                "SquadInterfaceLocation",
+                new Point(100, 100), () => "SquadInterface Location.",
+                () => ""
+            );
+            _settingSquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
+            _settingSquadInterfaceSize = settings.DefineSetting(
+                "SquadInterfaceSize",
+                new Point(100, 250), () => "SquadInterface Size.",
+                () => ""
+            );
+            _settingSquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
+            _settingSquadInterfaceMoving = settings.DefineSetting(
+                "EnableSquadInterfaceDrag",
+                false, () => "Enable SquadInterface Moving",
+                () => "SquadInterface can be moved when enabled."
+            );
+            _settingSquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
+            _settingSquadInterfaceVisibility = settings.DefineSetting(
+                "EnableSquadInterfaceVisibility",
+                false, () => "Enable SquadInterface Visibility",
+                () => "SquadInterface to be visible or not."
+            );
+            _settingSquadInterfaceVisibility.SettingChanged += UpdateSquadInterfaceVisibility;
         }
 
        
@@ -70,6 +103,7 @@ namespace Torlando.SquadTracker
         /// </summary>
         protected override void Initialize()
         {
+            
         }
 
         /// <summary>
@@ -80,6 +114,7 @@ namespace Torlando.SquadTracker
         {
             await LoadRoles();
             _playerIconsManager = new PlayerIconsManager(this.ContentsManager, _areColorIconsEnabled);
+            _squadTileTexture = ContentsManager.GetTexture("textures/squadtile.png");
         }
 
 
@@ -128,9 +163,19 @@ namespace Torlando.SquadTracker
         /// </summary>
         protected override void OnModuleLoaded(EventArgs e)
         {
+            _squadInterfaceView = new SquadInterfaceView(_playerIconsManager, _customRoles, _squadTileTexture)
+            {
+                Parent = GameService.Graphics.SpriteScreen
+            };
+            UpdateSideViewLocation();
+            UpdateSideViewSize();
+            UpdateSideViewMoving();
+            UpdateSideViewVisibility();
+
             _bridgeHandler = new Handler();
             _playersManager = new PlayersManager(_bridgeHandler);
-            _squadManager = new SquadManager(_playersManager);
+            _squadManager = new SquadManager(_playersManager, _squadInterfaceView);
+
 
             _newTab = GameService.Overlay.BlishHudWindow.AddTab(
                 icon: ContentsManager.GetTexture(@"textures\commandertag.png"),
@@ -155,14 +200,41 @@ namespace Torlando.SquadTracker
 
         protected override void Update(GameTime gameTime)
         {
-            
+            if (_settingSquadInterfaceVisibility.Value)
+            {
+                if (GameService.GameIntegration.Gw2Instance.IsInGame && !GameService.Gw2Mumble.UI.IsMapOpen)
+                    _squadInterfaceView.Show();
+                else
+                    _squadInterfaceView.Hide();
+            }
         }
 
         // happens when you disable the module
         protected override void Unload()
         {
-            _bridgeHandler.Stop();
+            if (_bridgeHandler != null)
+                _bridgeHandler.Stop();
             GameService.Overlay.BlishHudWindow.RemoveTab(_newTab);
+        }
+
+        private void UpdateSquadInterfaceLocation(object sender = null, ValueChangedEventArgs<Point> e = null)
+        {
+            _squadInterfaceView.Location = _settingSquadInterfaceLocation.Value;
+        }
+
+        private void UpdateSquadInterfaceSize(object sender = null, ValueChangedEventArgs<Point> e = null)
+        {
+            _squadInterfaceView.Size = _settingSquadInterfaceSize.Value;
+        }
+
+        private void UpdateSquadInterfaceMoving(object sender = null, ValueChangedEventArgs<bool> e = null)
+        {
+            _squadInterfaceView.EnableMoving = _settingSquadInterfaceMoving.Value;
+        }
+
+        private void UpdateSquadInterfaceVisibility(object sender = null, ValueChangedEventArgs<bool> e = null)
+        {
+            _squadInterfaceView.Visible = _settingSquadInterfaceVisibility.Value;
         }
     }
 

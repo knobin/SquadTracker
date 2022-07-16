@@ -11,11 +11,13 @@ namespace Torlando.SquadTracker
         public delegate void PlayerLeftInstanceHandler(string accountName);
         public delegate void CharacterChangedSpecializationHandler(Character character);
         public delegate void PlayerUpdatedHandler(Player newPlayer);
+        public delegate void SelfUpdatedHandler(string accountName);
 
         public event PlayerJoinedInstanceHandler PlayerJoinedInstance;
         public event PlayerLeftInstanceHandler PlayerLeftInstance;
         public event PlayerUpdatedHandler PlayerUpdated;
         public event CharacterChangedSpecializationHandler CharacterChangedSpecialization;
+        public event SelfUpdatedHandler SelfUpdated;
 
         private readonly IDictionary<string, Player> _players = new Dictionary<string, Player>();
         private readonly IDictionary<string, Character> _characters = new Dictionary<string, Character>();
@@ -43,6 +45,7 @@ namespace Torlando.SquadTracker
         private void OnSquadInfo(Handler.SquadStatus squad)
         {
             _self = squad.self;
+            this.SelfUpdated?.Invoke(_self);
 
             foreach (Handler.PlayerInfo pi in squad.members)
                 OnPlayerAdd(pi);
@@ -56,11 +59,13 @@ namespace Torlando.SquadTracker
             {
                 if (_characters.TryGetValue(playerInfo.characterName, out var ch))
                 {
+                    Logger.Info("Updating Character: {}", playerInfo.characterName);
                     character = ch;
                     character.Specialization = playerInfo.elite;
                 }
                 else
                 {
+                    Logger.Info("Creating Character: {}", playerInfo.characterName);
                     character = new Character(playerInfo.characterName, playerInfo.profession, playerInfo.elite);
                     _characters.Add(character.Name, character);
                 }
@@ -68,13 +73,21 @@ namespace Torlando.SquadTracker
 
             if (_players.TryGetValue(playerInfo.accountName, out var player))
             {
+                Logger.Info("Assigning Character: \"{}\" : to user \"{}\"", (character != null) ? character.Name : "", playerInfo.accountName);
                 player.CurrentCharacter = character;
-                player.IsInInstance = true;
+                player.IsInInstance = playerInfo.inInstance;
                 player.Subgroup = (uint)playerInfo.subgroup;
+                player.Role = playerInfo.role;
             }
             else
             {
-                player = new Player(playerInfo.accountName, character, (uint)playerInfo.subgroup);
+                Logger.Info("Assigning Character: \"{}\" : to new user \"{}\"", (character != null) ? character.Name : "", playerInfo.accountName);
+                player = new Player(playerInfo.accountName, character, (uint)playerInfo.subgroup)
+                {
+                    IsInInstance = playerInfo.inInstance,
+                    Role = playerInfo.role,
+                    IsSelf = (playerInfo.accountName == _self)
+            };
                 _players.Add(player.AccountName, player);
             }
 
@@ -105,7 +118,7 @@ namespace Torlando.SquadTracker
 
         private void OnPlayerUpdate(Handler.PlayerInfo playerInfo)
         {
-            Logger.Info("Update {} : {}", playerInfo.accountName, (playerInfo.characterName != null) ? playerInfo.characterName : "");
+            Logger.Info("Update {} : {}, inInstance {}", playerInfo.accountName, (playerInfo.characterName != null) ? playerInfo.characterName : "", playerInfo.inInstance);
             if (playerInfo.characterName != null)
             {
                 if (_characters.TryGetValue(playerInfo.characterName, out var srcCharacter))
@@ -118,21 +131,25 @@ namespace Torlando.SquadTracker
                     if (_players.TryGetValue(playerInfo.accountName, out var player))
                     {
                         player.CurrentCharacter = srcCharacter;
-                        player.IsInInstance = true;
+                        player.IsInInstance = playerInfo.inInstance;
+                        player.Subgroup = playerInfo.subgroup;
+                        player.Role = playerInfo.role;
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
                 else
                 {
-                    Logger.Info("Adding Character: {}", playerInfo.characterName);
+                    Logger.Info("Creating Character: {}", playerInfo.characterName);
                     Character character = new Character(playerInfo.characterName, playerInfo.profession, playerInfo.elite);
                     _characters.Add(character.Name, character);
                     
                     if (_players.TryGetValue(playerInfo.accountName, out var player))
                     {
-                        Logger.Info("Adding Character: {} : to user {}", playerInfo.characterName, playerInfo.accountName);
+                        Logger.Info("Assigning Character: {} : to user {}", playerInfo.characterName, playerInfo.accountName);
                         player.CurrentCharacter = character;
-                        player.IsInInstance = true;
+                        player.IsInInstance = playerInfo.inInstance;
+                        player.Subgroup = playerInfo.subgroup;
+                        player.Role = playerInfo.role;
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
@@ -146,6 +163,8 @@ namespace Torlando.SquadTracker
                     if (player.Subgroup != playerInfo.subgroup)
                     {
                         player.Subgroup = playerInfo.subgroup;
+                        player.IsInInstance = playerInfo.inInstance;
+                        player.Role = playerInfo.role;
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
