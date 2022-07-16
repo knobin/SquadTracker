@@ -167,10 +167,10 @@ namespace Torlando.SquadTracker
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
-            UpdateSideViewLocation();
-            UpdateSideViewSize();
-            UpdateSideViewMoving();
-            UpdateSideViewVisibility();
+            UpdateSquadInterfaceLocation();
+            UpdateSquadInterfaceSize();
+            UpdateSquadInterfaceMoving();
+            UpdateSquadInterfaceVisibility();
 
             _bridgeHandler = new Handler();
             _playersManager = new PlayersManager(_bridgeHandler);
