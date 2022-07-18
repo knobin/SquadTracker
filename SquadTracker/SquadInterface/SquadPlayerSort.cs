@@ -32,7 +32,27 @@ namespace Torlando.SquadTracker.SquadPanel
             return 9;
         }
 
-        public static int Compare(Player player1, Player player2)
+        public class PlayerSortInfo
+        {
+            public PlayerSortInfo(string accountName, Character character, uint subgroup, byte role, bool self, bool inInstance)
+            {
+                AccountName = accountName;
+                Character = character;
+                Subgroup = subgroup;
+                Role = role;
+                IsSelf = self;
+                IsInInstance = inInstance;
+            }
+
+            public string AccountName { get; set; }
+            public Character Character { get; set; }
+            public uint Subgroup { get; set; }
+            public byte Role { get; set; }
+            public bool IsSelf { get; set; }
+            public bool IsInInstance { get; set; }
+        }
+
+        public static int Compare(PlayerSortInfo player1, PlayerSortInfo player2)
         {
             var cmp = player1.Subgroup.CompareTo(player2.Subgroup);
 
@@ -47,23 +67,23 @@ namespace Torlando.SquadTracker.SquadPanel
                         if (player2.IsSelf)
                             return 1;
 
-                        if (player1.CurrentCharacter != null && player2.CurrentCharacter != null)
+                        if (player1.Character != null && player2.Character != null)
                         {
-                            if (player1.CurrentCharacter.Profession == player2.CurrentCharacter.Profession)
+                            if (player1.Character.Profession == player2.Character.Profession)
                             {
-                                if (player1.CurrentCharacter.Specialization == player2.CurrentCharacter.Specialization)
+                                if (player1.Character.Specialization == player2.Character.Specialization)
                                 {
-                                    string p1name = player1.CurrentCharacter.Name;
-                                    string p2name = player2.CurrentCharacter.Name;
+                                    string p1name = player1.Character.Name;
+                                    string p2name = player2.Character.Name;
 
                                     return p1name.CompareTo(p2name);
                                 }
 
-                                return player2.CurrentCharacter.Specialization.CompareTo(player1.CurrentCharacter.Specialization);
+                                return player2.Character.Specialization.CompareTo(player1.Character.Specialization);
                             }
 
-                            int p1 = ProfessionCodeOrder(player1.CurrentCharacter.Profession);
-                            int p2 = ProfessionCodeOrder(player2.CurrentCharacter.Profession);
+                            int p1 = ProfessionCodeOrder(player1.Character.Profession);
+                            int p2 = ProfessionCodeOrder(player2.Character.Profession);
                             return p1.CompareTo(p2);
                         }
 
@@ -79,6 +99,13 @@ namespace Torlando.SquadTracker.SquadPanel
             }
 
             return cmp;
+        }
+
+        public static int Compare(Player p1, Player p2)
+        {
+            PlayerSortInfo i1 = new PlayerSortInfo(p1.AccountName, p1.CurrentCharacter, p1.Subgroup, p1.Role, p1.IsSelf, p1.IsInInstance);
+            PlayerSortInfo i2 = new PlayerSortInfo(p2.AccountName, p2.CurrentCharacter, p2.Subgroup, p2.Role, p2.IsSelf, p2.IsInInstance);
+            return Compare(i1, i2);
         }
     }
 }

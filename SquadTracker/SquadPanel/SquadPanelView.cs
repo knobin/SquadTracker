@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
 using Blish_HUD;
 using Torlando.SquadTracker.Constants;
+using static Torlando.SquadTracker.SquadPanel.SquadPlayerSort;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -66,23 +67,13 @@ namespace Torlando.SquadTracker.SquadPanel
             };
         }
 
-        private static int CompareBySubgroup(PlayerDisplay playerDisplay1, PlayerDisplay playerDisplay2)
+        private static int CompareBySubgroup(PlayerDisplay pd1, PlayerDisplay pd2)
         {
-            var cmp = playerDisplay1.Subgroup.CompareTo(playerDisplay2.Subgroup);
-
-            if (cmp == 0)
-            {
-                if (playerDisplay1.CharacterName != "" && playerDisplay2.CharacterName != "")
-                    return playerDisplay1.CharacterName.CompareTo(playerDisplay2.CharacterName);
-                else if (playerDisplay1.CharacterName != "" && playerDisplay2.CharacterName == "")
-                    return playerDisplay1.CharacterName.CompareTo(playerDisplay2.AccountName);
-                else if (playerDisplay1.CharacterName == "" && playerDisplay2.CharacterName != "")
-                    return playerDisplay1.AccountName.CompareTo(playerDisplay2.CharacterName);
-                else
-                    return playerDisplay1.AccountName.CompareTo(playerDisplay2.AccountName);
-            }
-
-            return cmp;
+            Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
+            PlayerSortInfo p1 = new PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
+            Character c2 = (pd2.CharacterName != "") ? new Character(pd2.CharacterName, pd2.Profession, pd2.Specialization) : null;
+            PlayerSortInfo p2 = new PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
+            return SquadPlayerSort.Compare(p1, p2);
         }
 
         private void Sort()
@@ -100,6 +91,11 @@ namespace Torlando.SquadTracker.SquadPanel
                 Parent = _squadMembersPanel,
                 AccountName = playerModel.AccountName,
                 CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "",
+                Profession = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Profession : 0,
+                Specialization = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Specialization : 0,
+                Role = playerModel.Role,
+                IsSelf = playerModel.IsSelf,
+                IsInInstance = playerModel.IsInInstance,
                 Subgroup = playerModel.Subgroup,
                 Icon = icon,
                 BasicTooltipText = OtherCharactersToString(otherCharacters),
@@ -136,6 +132,11 @@ namespace Torlando.SquadTracker.SquadPanel
             display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
             display.Icon = icon;
             display.Subgroup = playerModel.Subgroup;
+            display.Profession = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Profession : 0;
+            display.Specialization = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Specialization : 0;
+            display.Role = playerModel.Role;
+            display.IsSelf = playerModel.IsSelf;
+            display.IsInInstance = playerModel.IsInInstance;
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
@@ -151,12 +152,6 @@ namespace Torlando.SquadTracker.SquadPanel
 
             var selectedRole = _roles.FirstOrDefault(r => r.Name.Equals(role));
             Logger.Info("Selected role: {}, from {}, str {}", selectedRole, index, role);
-            /*
-            if (index == 0)
-                playerModel.PrimaryRole = selectedRole;
-            else if (index == 1)
-                playerModel.SecondaryRole = selectedRole;
-            */
             playerModel.AddRole(selectedRole);
         }
 
@@ -181,6 +176,11 @@ namespace Torlando.SquadTracker.SquadPanel
             display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
             display.Icon = icon;
             display.Subgroup = playerModel.Subgroup;
+            display.Profession = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Profession : 0;
+            display.Specialization = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Specialization : 0;
+            display.Role = playerModel.Role;
+            display.IsSelf = playerModel.IsSelf;
+            display.IsInInstance = playerModel.IsInInstance;
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);

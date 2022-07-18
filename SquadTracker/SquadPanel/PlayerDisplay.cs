@@ -38,7 +38,11 @@ namespace Torlando.SquadTracker.SquadPanel
         }
         private string _accountName;
 
-        public byte SquadRole { get; set; } = 5;
+        public uint Profession { get; set; }
+        public uint Specialization { get; set; }
+        public byte Role { get; set; } = 5;
+        public bool IsSelf { get; set; }= false;
+        public bool IsInInstance { get; set; } = false;
 
         public uint Subgroup
         {
