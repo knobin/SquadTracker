@@ -139,12 +139,14 @@ namespace Torlando.SquadTracker
                         }
                         else
                         {
-                            if (!File.Exists(role.IconPath)) return;
-                            using var textureStream = File.Open(role.IconPath, FileMode.Open);
-                            if (textureStream != null)
+                            if (File.Exists(role.IconPath))
                             {
-                                Logger.Debug("Successfully loaded texture {dataReaderFilePath}.", role.IconPath);
-                                role.Icon = TextureUtil.FromStreamPremultiplied(GameService.Graphics.GraphicsDevice, textureStream);
+                                using var textureStream = File.Open(role.IconPath, FileMode.Open);
+                                if (textureStream != null)
+                                {
+                                    Logger.Debug("Successfully loaded texture {dataReaderFilePath}.", role.IconPath);
+                                    role.Icon = TextureUtil.FromStreamPremultiplied(GameService.Graphics.GraphicsDevice, textureStream);
+                                }
                             }
                         }
                     }
@@ -152,6 +154,29 @@ namespace Torlando.SquadTracker
                     {
                         Logger.Warn($"Could not load texture {role.IconPath}: {e.Message}");
                     }
+                }
+
+                if (role.Icon == null)
+                {
+                    role.Icon = new Texture2D(GameService.Graphics.GraphicsDevice, 32, 32);
+                    Color[] data = new Color[role.Icon.Width * role.Icon.Height];
+                    int hash = 0;
+                    for (int i = 0; i < role.Name.Length; ++i)
+                        hash = ((int)role.Name.ElementAt(i)) + ((hash << 5) - hash);
+
+                    byte r = (byte)((hash >> (0 * 8)) & 0xFF);
+                    byte g = (byte)((hash >> (1 * 8)) & 0xFF);
+                    byte b = (byte)((hash >> (2 * 8)) & 0xFF);
+
+                    for (int i = 0; i < data.Length; ++i)
+                    {
+                        data[i].R = r;
+                        data[i].G = g;
+                        data[i].B = b;
+                        data[i].A = 255;
+                    }
+                        
+                    role.Icon.SetData(data);
                 }
             }
         }

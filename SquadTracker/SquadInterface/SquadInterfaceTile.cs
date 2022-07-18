@@ -40,7 +40,6 @@ namespace Torlando.SquadTracker.SquadInterface
 
         public AsyncTexture2D ForegroundTexture { get; set; } = null;
         public AsyncTexture2D Icon { get; set; } = null;
-        private List<AsyncTexture2D> _roleIcons { get; set; } = null;
 
         private Color ForegroundColor = new Color(35, 35, 35, 55);
         private Color BorderColor = new Color(0, 0, 0, 255);

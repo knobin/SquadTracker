@@ -2,6 +2,6 @@
 {
     public static class Placeholder
     {
-        public const string DefaultRole = "Select a role...";
+        public const string DefaultRole = "Add role...";
     }
 }

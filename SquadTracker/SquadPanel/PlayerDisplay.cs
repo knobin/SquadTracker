@@ -1,4 +1,5 @@
 ﻿using Blish_HUD.Controls;
+using Blish_HUD.Input;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +10,7 @@ namespace Torlando.SquadTracker.SquadPanel
 {
     class PlayerDisplay : DetailsButton
     {
-        public Dropdown Role1Dropdown { get; set; }
-        public Dropdown Role2Dropdown { get; set; }
+        public Dropdown RoleDropdown { get; set; }
         public string CharacterName 
         { 
             get 
@@ -62,8 +62,10 @@ namespace Torlando.SquadTracker.SquadPanel
                 Text = $"{_accountName}\nSubgroup: {_subgroup}";
         }
 
-        private Image _roleIcon1 = new Image { Size = new Point(27, 27) };
-        private Image _roleIcon2 = new Image { Size = new Point(27, 27) };
+        private List<RoleImage> _roleIcons = new List<RoleImage>();
+
+        public delegate void RoleRemovedHandler(Role role);
+        public event RoleRemovedHandler OnRoleRemove;
 
         private const string _placeholderRoleName = Placeholder.DefaultRole;
 
@@ -72,10 +74,9 @@ namespace Torlando.SquadTracker.SquadPanel
             IconSize = DetailsIconSize.Small;
             ShowVignette = true;
             HighlightType = DetailsHighlightType.LightHighlight;
-            ShowToggleButton = true;
+            ShowToggleButton = false;
             Size = new Point(354, 90);
-            Role1Dropdown = CreateDropdown(availableRoles, _roleIcon1);
-            Role2Dropdown = CreateDropdown(availableRoles, _roleIcon2);
+            RoleDropdown = CreateDropdown(availableRoles);
         }
 
         //ToDo - KnownCharacters
@@ -84,14 +85,15 @@ namespace Torlando.SquadTracker.SquadPanel
             Tooltip.BasicTooltipText = text;
         }
 
-        private Dropdown CreateDropdown(IEnumerable<Role> roles, Image roleIcon)
+        private Dropdown CreateDropdown(IEnumerable<Role> roles)
         {
-            roleIcon.Parent = this;
             var dropdown = new Dropdown
             {
                 Parent = this,
-                Width = 135
+                Width = 135,
+                Visible = true
             };
+            dropdown.Location = new Point(this.Width - 135 - 10, dropdown.Location.Y);
             dropdown.Items.Add(_placeholderRoleName);
             foreach (var role in roles.OrderBy(role => role.Name.ToLowerInvariant()))
             {
@@ -99,10 +101,103 @@ namespace Torlando.SquadTracker.SquadPanel
             }
             dropdown.ValueChanged += delegate
             {
-                var selectedRole = roles.FirstOrDefault(role => role.Name.Equals(dropdown.SelectedItem));
-                roleIcon.Texture = selectedRole?.Icon ?? null;
+                dropdown.SelectedItem = _placeholderRoleName;
             };
             return dropdown;
         }
+
+        public RoleImage CreateRoleImage(string name, Role role, Dropdown dropdown)
+        {
+            var rImage = new RoleImage(name) { Parent = this, Size = new Point(27, 27) };
+            rImage.Texture = role.Icon;
+            rImage.OnRemoveClick += () => OnRoleRemove?.Invoke(role);
+            return rImage;
+        }
+
+        public void UpdateRoles(IEnumerable<Role> availableRoles, IEnumerable<Role> roles)
+        {
+            RoleDropdown.Items.Clear();
+            RoleDropdown.Items.Add(_placeholderRoleName);
+            var selectable = availableRoles.Except(roles);
+
+            foreach (var role in selectable.OrderBy(r => r.Name.ToLowerInvariant()))
+            {
+                var rImage = _roleIcons.Find(i => i.Name == role.Name);
+                if (rImage != null)
+                {
+                    rImage.Parent = null;
+                    rImage.Dispose();
+                    _roleIcons.Remove(rImage);
+                }
+                RoleDropdown.Items.Add(role.Name);
+            }
+            
+            foreach (var role in roles.OrderBy(r => r.Name.ToLowerInvariant()))
+            {
+                var rImage = _roleIcons.Find(i => i.Name == role.Name);
+                if (rImage == null)
+                {
+                    RoleImage icon = CreateRoleImage(role.Name, role, RoleDropdown);
+                    _roleIcons.Add(icon);
+                }
+            }
+
+            AlignBottom();
+        }
+
+        private void AlignBottom()
+        {
+
+            var icons = _roleIcons.OrderBy(r => r.Name).ToList();
+
+            Point point = new Point(10, RoleDropdown.Location.Y);
+            for (int i = 0; i < icons.Count; ++i)
+            {
+                icons[i].Location = point;
+                point.X += icons[i].Width + 3;
+                icons[i].BasicTooltipText = icons[i].Name;
+            }
+            point.X = this.Width - 135 - 10;
+            RoleDropdown.Location = point;
+
+            List<Control> list = _children.ToList();
+            list.Sort((c1, c2) => { return c1.Location.X.CompareTo(c2.Location.X); });
+            _children = new ControlCollection<Control>(list);
+        }
     }
+
+    class RoleImage : Image
+    {
+        public string Name { get;}
+        public delegate void RemoveClickHandler();
+        public event RemoveClickHandler OnRemoveClick;
+
+        private ContextMenuStrip _menu = null;
+
+        public RoleImage(string name)
+        {
+            Name = name;
+        }
+
+        protected override void OnRightMouseButtonPressed(MouseEventArgs e)
+        {
+            if (_menu != null)
+                _menu.Dispose();
+
+            _menu = new ContextMenuStrip();
+
+            List<ContextMenuStripItem> items = new List<ContextMenuStripItem>();
+
+            ContextMenuStripItem remove = new ContextMenuStripItem("Remove " + Name);
+            remove.Click += (sender, args) => {
+                OnRemoveClick?.Invoke();
+            };
+
+            items.Add(remove);
+            _menu.AddMenuItems(items);
+            _menu.Show(Input.Mouse.Position);
+
+            base.OnRightMouseButtonPressed(e);
+        }
+    };
 }

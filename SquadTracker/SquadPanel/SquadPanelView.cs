@@ -106,12 +106,11 @@ namespace Torlando.SquadTracker.SquadPanel
             };
 
             playerModel.OnRoleUpdated += () => OnRoleUpdate(playerDisplay, playerModel);
+            playerDisplay.OnRoleRemove += (Role role) => OnRoleRemoved(playerDisplay, playerModel, role);
 
-            playerDisplay.Role1Dropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 0);
-            playerDisplay.Role2Dropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 1);
+            playerDisplay.RoleDropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 0);
 
-            playerDisplay.Role1Dropdown.SelectedItem = assignedRoles[0];
-            playerDisplay.Role2Dropdown.SelectedItem = assignedRoles[1];
+            playerDisplay.RoleDropdown.SelectedItem = assignedRoles[0];
             _playerDisplays.Add(playerModel.AccountName, playerDisplay);
 
             _squadMembersPanel.BasicTooltipText = "";
@@ -122,15 +121,12 @@ namespace Torlando.SquadTracker.SquadPanel
         private void OnRoleUpdate(PlayerDisplay pd, Player player)
         {
             var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant());
+            pd.UpdateRoles(_roles, roles);
+        }
 
-            Role role1 = player.Roles.ElementAtOrDefault(0);
-            Role role2 = player.Roles.ElementAtOrDefault(1);
-
-            string str1 = (role1 != null) ? role1.Name : Placeholder.DefaultRole;
-            string str2 = (role2 != null) ? role2.Name : Placeholder.DefaultRole;
-
-            pd.Role1Dropdown.SelectedItem = str1;
-            pd.Role2Dropdown.SelectedItem = str2;
+        private void OnRoleRemoved(PlayerDisplay pd, Player player, Role role)
+        {
+            player.RemoveRole(role);
         }
 
         public void UpdatePlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)

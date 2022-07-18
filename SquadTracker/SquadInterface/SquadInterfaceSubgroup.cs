@@ -73,7 +73,7 @@ namespace Torlando.SquadTracker.SquadInterface
             }
 
             size.Y += ypadding;
-            _numberTextRect.Y = (Size.Y - (int)numberTextSize.Height) / 2;
+            _numberTextRect.Y = (size.Y - (int)numberTextSize.Height) / 2;
             Size = size;
         }
 
