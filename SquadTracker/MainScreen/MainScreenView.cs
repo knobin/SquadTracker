@@ -12,6 +12,7 @@ namespace Torlando.SquadTracker.MainScreen
         private MenuItem _squadMembersMenu;
         private MenuItem _squadRolesMenu;
         private ViewContainer _viewContainer;
+        private TextBox _searchbar;
 
         #if DEBUG
         private StandardButton _addPlayerButton;
@@ -25,11 +26,19 @@ namespace Torlando.SquadTracker.MainScreen
 
         protected override void Build(Container buildPanel)
         {
+            _searchbar = new TextBox()
+            {
+                Parent = buildPanel,
+                Size = new Point(Panel.MenuStandard.Size.X - 10, 30),
+                Location = new Point(5, 0),
+                PlaceholderText = "Search"
+            };
             _menuPanel = new ViewContainer
             {
                 Title = "Squad Tracker Menu",
                 ShowBorder = true,
-                Size = Panel.MenuStandard.Size,
+                Size = new Point(Panel.MenuStandard.Size.X, Panel.MenuStandard.Size.Y - _searchbar.Height - 10),
+                Location = new Point(0, _searchbar.Height + 10),
                 Parent = buildPanel
             };
             _menuCategories = new Menu
@@ -52,11 +61,33 @@ namespace Torlando.SquadTracker.MainScreen
 
             _squadRolesMenu = _menuCategories.AddMenuItem("Squad Roles");
             _squadRolesMenu.ItemSelected += (o, e) => ShowView("Squad Roles");
+
+            _searchbar.TextChanged += Searching;
         }
 
         private void ShowView(string viewName)
         {
+            _searching = false;
             _viewContainer.Show(Presenter.SelectView(viewName));
+        }
+
+        private bool _searching = false;
+        private void Searching(object sender, System.EventArgs e)
+        {
+            if (_searchbar.Text.Length > 0 && !_searching)
+            {
+                SearchView();
+            }
+            else if (_searchbar.Text.Length == 0 && _searching)
+            {
+                ShowView(_menuCategories.SelectedMenuItem.Text);
+            }
+        }
+
+        private void SearchView()
+        {
+            _searching = true;
+            _viewContainer.Show(Presenter.SearchView(_searchbar));
         }
     }
 }

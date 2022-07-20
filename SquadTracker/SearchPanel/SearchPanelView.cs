@@ -11,13 +11,11 @@ using static Torlando.SquadTracker.SquadPanel.SquadPlayerSort;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
-    internal class SquadPanelView : View<SquadPanelPresenter>
+    internal class SearchPanelView : View<SearchPanelPresenter>
     {
         #region Controls
         
         private FlowPanel _squadMembersPanel;
-        private FlowPanel _formerSquadMembersPanel;
-        private StandardButton _clearFormerSquadButton;
         private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
         private readonly IEnumerable<Role> _roles;
 
@@ -25,7 +23,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private static readonly Logger Logger = Logger.GetLogger<Module>();
 
-        public SquadPanelView(ICollection<Role> roles)
+        public SearchPanelView(ICollection<Role> roles)
         {
             _roles = roles;
         }
@@ -39,47 +37,34 @@ namespace Torlando.SquadTracker.SquadPanel
                 Parent = buildPanel,
                 Location = new Point(buildPanel.ContentRegion.Left, buildPanel.ContentRegion.Top),
                 CanScroll = true,
-                Size = new Point(buildPanel.ContentRegion.Width, 530), //
-                Title = "Current Squad Members",
-                ShowBorder = true,
-                BasicTooltipText = "You loaded Blish HUD after starting Guild Wars 2. Please change maps to refresh."
-            };
-            _formerSquadMembersPanel = new FlowPanel
-            {
-                FlowDirection = ControlFlowDirection.LeftToRight,
-                ControlPadding = new Vector2(8, 8),
-                Parent = buildPanel,
-                Location = new Point(buildPanel.ContentRegion.Left, _squadMembersPanel.Bottom + 10),
-                CanScroll = true,
-                Size = new Point(_squadMembersPanel.Width, 150),
-                Title = "Former Squad Members",
+                Size = new Point(buildPanel.ContentRegion.Width, buildPanel.ContentRegion.Height), //
+                Title = "Search result",
                 ShowBorder = true
             };
-            _clearFormerSquadButton = new StandardButton
-            {
-                Parent = buildPanel,
-                Text = "Clear",
-                Location = new Point(_formerSquadMembersPanel.Right - 135, _formerSquadMembersPanel.Top + 5)
-            };
-            _clearFormerSquadButton.Click += delegate
-            {
-                Presenter.ClearFormerSquadMembers();
-            };
         }
 
-        private static int CompareBySubgroup(PlayerDisplay pd1, PlayerDisplay pd2)
+        public void Sort(Dictionary<string, int> order)
         {
-            Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
-            PlayerSortInfo p1 = new PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
-            Character c2 = (pd2.CharacterName != "") ? new Character(pd2.CharacterName, pd2.Profession, pd2.Specialization) : null;
-            PlayerSortInfo p2 = new PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
-            return SquadPlayerSort.Compare(p1, p2);
+            _squadMembersPanel.SortChildren((PlayerDisplay pd1, PlayerDisplay pd2) =>
+            {
+                int cmp = order[pd1.AccountName].CompareTo(order[pd2.AccountName]);
+
+                if (cmp == 0)
+                {
+                    Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
+                    PlayerSortInfo p1 = new PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
+                    Character c2 = (pd2.CharacterName != "") ? new Character(pd2.CharacterName, pd2.Profession, pd2.Specialization) : null;
+                    PlayerSortInfo p2 = new PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
+                    return SquadPlayerSort.Compare(p1, p2);
+                }
+
+                return cmp;
+            });
         }
 
-        private void Sort()
+        public bool Exists(string accountName)
         {
-            if (_squadMembersPanel.Visible)
-                _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
+            return _playerDisplays.ContainsKey(accountName);
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -113,8 +98,14 @@ namespace Torlando.SquadTracker.SquadPanel
             _playerDisplays.Add(playerModel.AccountName, playerDisplay);
 
             _squadMembersPanel.BasicTooltipText = "";
+        }
 
-            Sort();
+        public void RemovePlayer(string accountName)
+        {
+            if(!_playerDisplays.TryGetValue(accountName, out var display)) return;
+
+            display.Parent = null;
+            _playerDisplays.Remove(accountName);
         }
 
         private void OnRoleUpdate(PlayerDisplay pd, Player player)
@@ -143,7 +134,6 @@ namespace Torlando.SquadTracker.SquadPanel
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
-            Sort();
         }
 
         private void UpdateSelectedRoles(Player playerModel, ValueChangedEventArgs e, int index)
@@ -151,7 +141,6 @@ namespace Torlando.SquadTracker.SquadPanel
             var role = e.CurrentValue;
             var accountName = playerModel.AccountName;
             Presenter.UpdateSelectedRoles(accountName, role, index);
-            Sort();
 
             var selectedRole = _roles.FirstOrDefault(r => r.Name.Equals(role));
             Logger.Info("Selected role: {}, from {}, str {}", selectedRole, index, role);
@@ -162,34 +151,6 @@ namespace Torlando.SquadTracker.SquadPanel
         {
             if (!_playerDisplays.TryGetValue(playerModel.AccountName, out var display)) return;
             display.Icon = icon;
-        }
-
-        public void MovePlayerToFormerMembers(string accountName)
-        {
-            if (_playerDisplays.TryGetValue(accountName, out var display))
-            { 
-                display.Parent = _formerSquadMembersPanel;
-            }
-        }
-
-        public void MoveFormerPlayerBackToSquad(Player playerModel, AsyncTexture2D icon)
-        {
-            if (!_playerDisplays.TryGetValue(playerModel.AccountName, out var display)) return;
-
-            display.CharacterName = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Name : "";
-            display.Icon = icon;
-            display.Subgroup = playerModel.Subgroup;
-            display.Profession = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Profession : 0;
-            display.Specialization = (playerModel.CurrentCharacter != null) ? playerModel.CurrentCharacter.Specialization : 0;
-            display.Role = playerModel.Role;
-            display.IsSelf = playerModel.IsSelf;
-            display.IsInInstance = playerModel.IsInInstance;
-
-            var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
-            display.BasicTooltipText = OtherCharactersToString(otherCharacters);
-
-            display.Parent = _squadMembersPanel;
-            Sort();
         }
 
         private static string OtherCharactersToString(IReadOnlyCollection<Character> characters)
@@ -205,14 +166,6 @@ namespace Torlando.SquadTracker.SquadPanel
             );
 
             return $"Other characters:\n{charactersList}";
-        }
-
-        public void RemoveFormerMember(string accountName)
-        {
-            if (!_playerDisplays.TryGetValue(accountName, out var display)) return;
-
-            _playerDisplays.Remove(accountName);
-            display.Parent = null;
         }
     }
 }

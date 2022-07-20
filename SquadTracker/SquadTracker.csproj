@@ -84,6 +84,8 @@
     <Compile Include="Character.cs" />
     <Compile Include="MainScreen\MainScreenPresenter.cs" />
     <Compile Include="MainScreen\MainScreenView.cs" />
+    <Compile Include="SearchPanel\SearchPanelPresenter.cs" />
+    <Compile Include="SearchPanel\SearchPanelView.cs" />
     <Compile Include="SquadInterface\SquadInterfaceSubgroup.cs" />
     <Compile Include="SquadInterface\SquadInterfaceTile.cs" />
     <Compile Include="SquadInterface\SquadInterfaceView.cs" />

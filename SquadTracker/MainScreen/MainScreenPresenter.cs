@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Torlando.SquadTracker.RolesScreen;
 using Torlando.SquadTracker.SquadPanel;
@@ -41,6 +42,13 @@ namespace Torlando.SquadTracker.MainScreen
         {
             var view = new RolesView();
             var presenter = new RolesPresenter(view, _roles);
+            return view.WithPresenter(presenter);
+        }
+
+        public IView SearchView(TextBox searchbar)
+        {
+            var view = new SearchPanelView(_roles);
+            var presenter = new SearchPanelPresenter(view, _playersManager, _squadManager, _iconsManager, _roles, searchbar);
             return view.WithPresenter(presenter);
         }
     }
