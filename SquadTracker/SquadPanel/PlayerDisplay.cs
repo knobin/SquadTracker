@@ -153,14 +153,17 @@ namespace Torlando.SquadTracker.SquadPanel
         {
             var icons = _roleIcons.OrderBy(r => r.Name).ToList();
 
-            Point point = new Point(10, RoleDropdown.Location.Y + 2);
+            const int bottomHeight = 35;
+            Point point = new Point(10, 0);
             for (int i = 0; i < icons.Count; ++i)
             {
+                point.Y = (bottomHeight - icons[i].Height) / 2;
                 icons[i].Location = point;
                 point.X += icons[i].Width + 3;
                 icons[i].BasicTooltipText = icons[i].Name;
             }
             point.X = this.Width - 135 - 10;
+            point.Y = (bottomHeight - RoleDropdown.Height) / 2;
             RoleDropdown.Location = point;
 
             List<Control> list = _children.ToList();
