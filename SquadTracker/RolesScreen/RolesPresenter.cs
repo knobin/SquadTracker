@@ -29,6 +29,7 @@ namespace Torlando.SquadTracker.RolesScreen
             }
 
             var role = new Role(newRoleName);
+            role.Icon = RoleIconCreator.GenerateIcon(role.Name);
             this._roles.Add(role);
 
             this.View.AddRoleDisplay(role);

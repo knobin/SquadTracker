@@ -6,7 +6,6 @@ using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
 using BridgeHandler;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
@@ -158,25 +157,7 @@ namespace Torlando.SquadTracker
 
                 if (role.Icon == null)
                 {
-                    role.Icon = new Texture2D(GameService.Graphics.GraphicsDevice, 32, 32);
-                    Color[] data = new Color[role.Icon.Width * role.Icon.Height];
-                    int hash = 0;
-                    for (int i = 0; i < role.Name.Length; ++i)
-                        hash = ((int)role.Name.ElementAt(i)) + ((hash << 5) - hash);
-
-                    byte r = (byte)((hash >> (0 * 8)) & 0xFF);
-                    byte g = (byte)((hash >> (1 * 8)) & 0xFF);
-                    byte b = (byte)((hash >> (2 * 8)) & 0xFF);
-
-                    for (int i = 0; i < data.Length; ++i)
-                    {
-                        data[i].R = r;
-                        data[i].G = g;
-                        data[i].B = b;
-                        data[i].A = 255;
-                    }
-                        
-                    role.Icon.SetData(data);
+                    role.Icon = RoleIconCreator.GenerateIcon(role.Name);
                 }
             }
         }
@@ -201,6 +182,22 @@ namespace Torlando.SquadTracker
             _playersManager = new PlayersManager(_bridgeHandler);
             _squadManager = new SquadManager(_playersManager, _squadInterfaceView);
 
+            // If already added role gets deleted, remove it from players.
+            _customRoles.CollectionChanged += (sender, e) => {
+                var players = _squadManager.GetSquad().CurrentMembers;
+                for (int i = 0; i < players.Count; ++i)
+                {
+                    var player = players.ElementAt(i);
+                    var roles = player.Roles;
+                    for (int j = 0; j < roles.Count; ++j)
+                    {
+                        if (!_customRoles.Contains(roles.ElementAt(j)))
+                        {
+                            player.RemoveRole(roles.ElementAt(j));
+                        }
+                    }
+                }
+            };
 
             _newTab = GameService.Overlay.BlishHudWindow.AddTab(
                 icon: ContentsManager.GetTexture(@"textures\commandertag.png"),

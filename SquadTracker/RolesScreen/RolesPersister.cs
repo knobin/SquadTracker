@@ -1,7 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using Blish_HUD;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 
 namespace Torlando.SquadTracker.RolesScreen
@@ -54,4 +58,32 @@ namespace Torlando.SquadTracker.RolesScreen
             File.WriteAllText(filePath, json);
         }
     }
+
+    public class RoleIconCreator
+    {
+        public static Texture2D GenerateIcon(string name, int width = 32, int height = 32)
+        {
+            Texture2D icon = new Texture2D(GameService.Graphics.GraphicsDevice, width, height);
+            Color[] data = new Color[width * height];
+            int hash = 0;
+            for (int i = 0; i < name.Length; ++i)
+                hash = ((int)name.ElementAt(i)) + ((hash << 5) - hash);
+
+            byte r = (byte)((hash >> (0 * 8)) & 0xFF);
+            byte g = (byte)((hash >> (1 * 8)) & 0xFF);
+            byte b = (byte)((hash >> (2 * 8)) & 0xFF);
+
+            for (int i = 0; i < data.Length; ++i)
+            {
+                data[i].R = r;
+                data[i].G = g;
+                data[i].B = b;
+                data[i].A = 255;
+            }
+
+            icon.SetData(data);
+            return icon;
+        }
+    }
+    
 }
