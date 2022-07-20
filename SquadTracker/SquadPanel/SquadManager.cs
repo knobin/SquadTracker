@@ -8,15 +8,21 @@ namespace Torlando.SquadTracker.SquadPanel
         public delegate void PlayerJoinedSquadHandler(Player player, bool isReturning);
         public delegate void PlayerUpdateSquadHandler(Player player);
         public delegate void PlayerLeftSquadHandler(string accountName);
+        public delegate void BridgeConntectionHandler();
 
         public event PlayerJoinedSquadHandler PlayerJoinedSquad;
         public event PlayerLeftSquadHandler PlayerLeftSquad;
         public event PlayerUpdateSquadHandler PlayerUpdateSquad;
 
+        public event BridgeConntectionHandler BridgeConnected;
+        public event BridgeConntectionHandler BridgeDisconnected;
+
         private readonly PlayersManager _playersManager;
 
         private readonly Squad _squad;
         private readonly SquadInterfaceView _squadInterfaceView;
+
+        private bool _bridgeConnected = false;
 
         public SquadManager(PlayersManager playersManager, SquadInterfaceView squadInterfaceView)
         {
@@ -35,6 +41,27 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.PlayerLeftInstance += OnPlayerLeftInstance;
             _playersManager.PlayerUpdated += OnPlayerUpdate;
             _playersManager.SelfUpdated += OnSelfUpdate;
+        }
+
+        public bool IsBridgeConnected()
+        {
+            return _bridgeConnected;
+        }
+
+        public void SetBridgeConnectionStatus(bool connected)
+        {
+            _bridgeConnected = connected;
+
+            if (_bridgeConnected)
+            {
+                _squadInterfaceView.HideErrorMessage();
+                BridgeConnected?.Invoke();
+            }
+            else
+            {
+                _squadInterfaceView.ShowErrorMessage(Constants.Placeholder.BridgeHandlerErrorMessage);
+                BridgeDisconnected?.Invoke();
+            } 
         }
 
         public Squad GetSquad()

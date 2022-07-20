@@ -169,6 +169,10 @@ namespace BridgeHandler
         public event PlayerChange OnPlayerUpdateEvent;
         public event PlayerChange OnPlayerRemovedEvent;
 
+        // Connection event.
+        public delegate void ConntectedHandler(bool connected);
+        public event ConntectedHandler OnConnectionUpdate;
+
         // ArcDPS event.
         public event ArcMessage OnArcEvent;
 
@@ -283,6 +287,9 @@ namespace BridgeHandler
                     continue;
                 }
 
+                // Bridge is connected here, invoke callback.
+                tData.Handle.OnConnectionUpdate?.Invoke(true);
+
                 while (tData.Run && tData.ClientStream.IsConnected)
                 {
                     String data = ReadFromPipe(tData.ClientStream);
@@ -297,6 +304,8 @@ namespace BridgeHandler
                 tData.ClientStream.Close();
                 tData.ClientStream = null;
                 tData.Connected = false;
+                // Bridge disconnected here, invoke callback.
+                tData.Handle.OnConnectionUpdate?.Invoke(false);
             }
 
             // Thread is ending, close stream if open.
@@ -305,6 +314,8 @@ namespace BridgeHandler
                 tData.ClientStream.Close();
                 tData.ClientStream = null;
                 tData.Connected = false;
+                // Bridge disconnected here, invoke callback.
+                tData.Handle.OnConnectionUpdate?.Invoke(false);
             }
         }
         private static class EventType

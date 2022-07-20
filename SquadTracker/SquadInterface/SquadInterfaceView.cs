@@ -25,6 +25,13 @@ namespace Torlando.SquadTracker.SquadInterface
             _tileLoadedTexture = squad;
             GenerateResizeArrow(_resizeArrowSize.X, _resizeArrowSize.Y, Color.LightGray);
             _lastSize = this.Size;
+            _errorMessage = new Label() 
+            { 
+                Font = GameService.Content.DefaultFont18, 
+                Parent = this, 
+                Visible = false,
+                Location = new Point(10, 10)
+            };
         }
 
         public bool EnableMoving = false;
@@ -65,6 +72,8 @@ namespace Torlando.SquadTracker.SquadInterface
         private Point _lastSize = new Point(1, 1);
         private int _lastChildrenCount = 0;
 
+        private Label _errorMessage;
+
         private void GenerateResizeArrow(int width, int height, Color color)
         {
             _resizeArrowTexture = new Texture2D(GameService.Graphics.GraphicsDevice, width, height);
@@ -84,6 +93,23 @@ namespace Torlando.SquadTracker.SquadInterface
             }
 
             _resizeArrowTexture.SetData(data);
+        }
+
+        public void ShowErrorMessage(string message)
+        {
+            _errorMessage.Text = message;
+            var strSize = _errorMessage.Font.MeasureString(_errorMessage.Text);
+            int strWidth = (int)strSize.Width + 10;
+            int strHeight = (int)strSize.Height + 10;
+            _errorMessage.Size = new Point(strWidth, strHeight);
+
+            _errorMessage.Visible = true;
+        }
+
+        public void HideErrorMessage()
+        {
+            _errorMessage.Visible = false;
+            _errorMessage.Text = "";
         }
 
         public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)

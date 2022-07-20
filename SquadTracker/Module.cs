@@ -210,6 +210,9 @@ namespace Torlando.SquadTracker
                 name: "Squad Tracker Tab"
             );
 
+            _squadManager.SetBridgeConnectionStatus(false);
+            _bridgeHandler.OnConnectionUpdate += (connected) => _squadManager.SetBridgeConnectionStatus(connected);
+
             Handler.Subscribe sub = new Handler.Subscribe() { Squad = true };
             _bridgeHandler.Start(sub);
 

@@ -17,6 +17,7 @@ namespace Torlando.SquadTracker.SquadPanel
         
         private FlowPanel _squadMembersPanel;
         private FlowPanel _formerSquadMembersPanel;
+        private Label _bridgeNotConnected;
         private StandardButton _clearFormerSquadButton;
         private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
         private readonly IEnumerable<Role> _roles;
@@ -65,6 +66,37 @@ namespace Torlando.SquadTracker.SquadPanel
             {
                 Presenter.ClearFormerSquadMembers();
             };
+            _bridgeNotConnected = new Label()
+            {
+                Visible = false,
+                Parent = buildPanel,
+                Font = GameService.Content.DefaultFont18,
+                Location = new Point(10, 10)
+            };
+        }
+
+        public void ShowErrorMessage(string message)
+        {
+            _bridgeNotConnected.Text = message;
+            var strSize = _bridgeNotConnected.Font.MeasureString(_bridgeNotConnected.Text);
+            int strWidth = (int)strSize.Width + 10;
+            int strHeight = (int)strSize.Height + 10;
+            _bridgeNotConnected.Size = new Point(strWidth, strHeight);
+
+            _bridgeNotConnected.Visible = true;
+            _squadMembersPanel.Visible = false;
+            _formerSquadMembersPanel.Visible = false;
+            _clearFormerSquadButton.Visible = false;
+        }
+
+        public void HideErrorMessage()
+        {
+            _bridgeNotConnected.Visible = false;
+            _squadMembersPanel.Visible = true;
+            _formerSquadMembersPanel.Visible = true;
+            _clearFormerSquadButton.Visible = true;
+
+            _bridgeNotConnected.Text = "";
         }
 
         private static int CompareBySubgroup(PlayerDisplay pd1, PlayerDisplay pd2)
