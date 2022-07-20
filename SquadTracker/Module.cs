@@ -7,6 +7,7 @@ using Blish_HUD.Settings;
 using BridgeHandler;
 using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.IO;
@@ -188,12 +189,12 @@ namespace Torlando.SquadTracker
                 for (int i = 0; i < players.Count; ++i)
                 {
                     var player = players.ElementAt(i);
-                    var roles = player.Roles;
-                    for (int j = 0; j < roles.Count; ++j)
+                    List<Role> roles = player.Roles.ToList();
+                    foreach (Role role in roles)
                     {
-                        if (!_customRoles.Contains(roles.ElementAt(j)))
+                        if (!_customRoles.Contains(role))
                         {
-                            player.RemoveRole(roles.ElementAt(j));
+                            player.RemoveRole(role);
                         }
                     }
                 }
