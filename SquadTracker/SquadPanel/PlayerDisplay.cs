@@ -151,10 +151,9 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private void AlignBottom()
         {
-
             var icons = _roleIcons.OrderBy(r => r.Name).ToList();
 
-            Point point = new Point(10, RoleDropdown.Location.Y);
+            Point point = new Point(10, RoleDropdown.Location.Y + 2);
             for (int i = 0; i < icons.Count; ++i)
             {
                 icons[i].Location = point;
