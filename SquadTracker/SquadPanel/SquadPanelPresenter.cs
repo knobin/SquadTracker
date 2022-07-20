@@ -69,7 +69,7 @@ namespace Torlando.SquadTracker.SquadPanel
             }
             else
             {
-                View.DisplayPlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
+                View.DisplayPlayer(player, icon, _roles);
             }
         }
 

@@ -82,7 +82,7 @@ namespace Torlando.SquadTracker.SquadPanel
                 _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
         }
 
-        public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
+        public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles)
         {
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
 
@@ -109,7 +109,6 @@ namespace Torlando.SquadTracker.SquadPanel
 
             playerDisplay.RoleDropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 0);
 
-            playerDisplay.RoleDropdown.SelectedItem = assignedRoles[0];
             _playerDisplays.Add(playerModel.AccountName, playerDisplay);
 
             _squadMembersPanel.BasicTooltipText = "";
@@ -150,7 +149,7 @@ namespace Torlando.SquadTracker.SquadPanel
         {
             var role = e.CurrentValue;
             var accountName = playerModel.AccountName;
-            Presenter.UpdateSelectedRoles(accountName, role, index);
+            // Presenter.UpdateSelectedRoles(accountName, role, index);
             Sort();
 
             var selectedRole = _roles.FirstOrDefault(r => r.Name.Equals(role));

@@ -138,7 +138,7 @@ namespace Torlando.SquadTracker.SquadPanel
             
             if (Match(player, _searchbar.Text) > 0)
             {
-                View.DisplayPlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
+                View.DisplayPlayer(player, icon, _roles);
                 UpdateSorting(_searchbar.Text);
             }
         }
