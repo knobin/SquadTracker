@@ -4,6 +4,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using Blish_HUD.Input;
 using BridgeHandler;
 using Microsoft.Xna.Framework;
 using System;
@@ -17,6 +18,7 @@ using Torlando.SquadTracker.MainScreen;
 using Torlando.SquadTracker.RolesScreen;
 using Torlando.SquadTracker.SquadInterface;
 using Torlando.SquadTracker.SquadPanel;
+using Microsoft.Xna.Framework.Input;
 
 namespace Torlando.SquadTracker
 {
@@ -51,8 +53,11 @@ namespace Torlando.SquadTracker
         public static SettingEntry<Point> _settingSquadInterfaceLocation;
         public static SettingEntry<Point> _settingSquadInterfaceSize;
         public static SettingEntry<bool> _settingSquadInterfaceMoving;
-        public static SettingEntry<bool> _settingSquadInterfaceVisibility;
+        public static SettingEntry<bool> _settingSquadInterfaceEnable;
         private AsyncTexture2D _squadTileTexture;
+
+        public SettingEntry<KeyBinding> ToggleSquadInterface { get; private set; }
+        private bool _squadInterfaceShouldShow = false;
 
         [ImportingConstructor]
         public Module([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -80,18 +85,37 @@ namespace Torlando.SquadTracker
                 () => ""
             );
             _settingSquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
+            
+            _settingSquadInterfaceEnable = settings.DefineSetting(
+                "EnableSquadInterface",
+                false, () => "Enable SquadInterface",
+                () => "SquadInterface to be enabled or not."
+            );
+            _settingSquadInterfaceEnable.SettingChanged += EnableSquadInterface;
+
             _settingSquadInterfaceMoving = settings.DefineSetting(
                 "EnableSquadInterfaceDrag",
                 false, () => "Enable SquadInterface Moving",
                 () => "SquadInterface can be moved when enabled."
             );
             _settingSquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
-            _settingSquadInterfaceVisibility = settings.DefineSetting(
-                "EnableSquadInterfaceVisibility",
-                false, () => "Enable SquadInterface Visibility",
-                () => "SquadInterface to be visible or not."
+
+            ToggleSquadInterface = settings.DefineSetting(
+                "ToggleSquadInterface",
+                new KeyBinding(ModifierKeys.Shift | ModifierKeys.Ctrl, Keys.P),
+                () => "Toggle SquadInterface Visibility",
+                () => "Set keybind to toggle the SquadInterface."
             );
-            _settingSquadInterfaceVisibility.SettingChanged += UpdateSquadInterfaceVisibility;
+            ToggleSquadInterface.Value.BlockSequenceFromGw2 = true;
+            ToggleSquadInterface.Value.Enabled = true;
+            ToggleSquadInterface.Value.Activated += delegate
+            {
+                if (_settingSquadInterfaceEnable.Value)
+                {
+                    _squadInterfaceShouldShow = !_squadInterfaceView.Visible;
+                    _squadInterfaceView.Visible = !_squadInterfaceView.Visible;
+                }
+            };
         }
 
        
@@ -177,7 +201,7 @@ namespace Torlando.SquadTracker
             UpdateSquadInterfaceLocation();
             UpdateSquadInterfaceSize();
             UpdateSquadInterfaceMoving();
-            UpdateSquadInterfaceVisibility();
+            EnableSquadInterface();
 
             _bridgeHandler = new Handler();
             _playersManager = new PlayersManager(_bridgeHandler);
@@ -226,9 +250,9 @@ namespace Torlando.SquadTracker
 
         protected override void Update(GameTime gameTime)
         {
-            if (_settingSquadInterfaceVisibility.Value)
+            if (_settingSquadInterfaceEnable.Value)
             {
-                if (GameService.GameIntegration.Gw2Instance.IsInGame && !GameService.Gw2Mumble.UI.IsMapOpen)
+                if (GameService.GameIntegration.Gw2Instance.IsInGame && !GameService.Gw2Mumble.UI.IsMapOpen && _squadInterfaceShouldShow)
                     _squadInterfaceView.Show();
                 else
                     _squadInterfaceView.Hide();
@@ -258,9 +282,10 @@ namespace Torlando.SquadTracker
             _squadInterfaceView.EnableMoving = _settingSquadInterfaceMoving.Value;
         }
 
-        private void UpdateSquadInterfaceVisibility(object sender = null, ValueChangedEventArgs<bool> e = null)
+        private void EnableSquadInterface(object sender = null, ValueChangedEventArgs<bool> e = null)
         {
-            _squadInterfaceView.Visible = _settingSquadInterfaceVisibility.Value;
+            _squadInterfaceView.Visible = _settingSquadInterfaceEnable.Value;
+            _squadInterfaceShouldShow = _squadInterfaceView.Visible;
         }
     }
 
