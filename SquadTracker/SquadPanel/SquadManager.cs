@@ -83,6 +83,11 @@ namespace Torlando.SquadTracker.SquadPanel
             {
                 isReturning = true;
                 _squad.FormerMembers.Remove(newPlayer);
+
+                if (!Module.KeepPlayerRolesWhenRejoining.Value)
+                {
+                    newPlayer.ClearRoles();
+                }
             }
 
             _squadInterfaceView.Add(newPlayer);

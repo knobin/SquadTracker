@@ -123,6 +123,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
             foreach (var formerMember in formerMembers)
             {
+                _playersManager.RemovePlayer(formerMember);
                 View.RemoveFormerMember(formerMember.AccountName);
             }
         }

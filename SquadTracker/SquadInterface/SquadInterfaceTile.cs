@@ -40,6 +40,8 @@ namespace Torlando.SquadTracker.SquadInterface
 
         public AsyncTexture2D ForegroundTexture { get; set; } = null;
         public AsyncTexture2D Icon { get; set; } = null;
+        private AsyncTexture2D RoleIcon1 { get; set; } = null;
+        private AsyncTexture2D RoleIcon2 { get; set; } = null;
 
         private Color ForegroundColor = new Color(35, 35, 35, 55);
         private Color BorderColor = new Color(0, 0, 0, 255);
@@ -87,10 +89,7 @@ namespace Torlando.SquadTracker.SquadInterface
                 spriteBatch.DrawStringOnCtrl(this, _displayName, _font, rect, Color.White);
             }
 
-            Role role1 = Player.Roles.ElementAtOrDefault(0);
-            Role role2 = Player.Roles.ElementAtOrDefault(1);
-
-            if (role1 != null || role2 != null || Icon != null)
+            if (RoleIcon1 != null || RoleIcon2 != null || Icon != null)
             {
                 bool onlyicon = !(bounds.Height > DisplayHeightThreshold);
 
@@ -99,14 +98,14 @@ namespace Torlando.SquadTracker.SquadInterface
                 int roled = icond - rolescale;
 
                 int totalX = 0;
-                totalX += (Icon != null) ? icond : 0;
-                totalX += (!onlyicon && role1 != null && role1.Icon != null) ? roled : 0;
-                totalX += (!onlyicon && role2 != null && role2.Icon != null) ? roled : 0;
+                totalX += (Icon != null && Player.IsInInstance) ? icond : 0;
+                totalX += (!onlyicon && RoleIcon1 != null) ? roled : 0;
+                totalX += (!onlyicon && RoleIcon2 != null) ? roled : 0;
 
                 int xcount = 1;
                 xcount += (Icon != null) ? 1 : 0;
-                xcount += (!onlyicon && role1 != null && role1.Icon != null) ? 1 : 0;
-                xcount += (!onlyicon && role2 != null && role2.Icon != null) ? 1 : 0;
+                xcount += (!onlyicon && RoleIcon1 != null) ? 1 : 0;
+                xcount += (!onlyicon && RoleIcon2 != null) ? 1 : 0;
 
                 int xspacing = (bounds.Width - totalX) / (xcount);
 
@@ -132,17 +131,17 @@ namespace Torlando.SquadTracker.SquadInterface
                 irect.Height = roled;
                 irect.Y += (rolescale / 2);
 
-                if (!onlyicon && role1 != null && role1.Icon != null)
+                if (!onlyicon && RoleIcon1 != null)
                 {
                     irect.X += xspacing;
-                    spriteBatch.DrawOnCtrl(this, role1.Icon, irect);
+                    spriteBatch.DrawOnCtrl(this, RoleIcon1, irect);
                     irect.X += roled;
                 }
 
-                if (!onlyicon && role2 != null && role2.Icon != null)
+                if (!onlyicon && RoleIcon2 != null)
                 {
                     irect.X += xspacing;
-                    spriteBatch.DrawOnCtrl(this, role2.Icon, irect);
+                    spriteBatch.DrawOnCtrl(this, RoleIcon2, irect);
                 }
             }
 
@@ -202,6 +201,17 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private void SetTooltipText()
         {
+            RoleIcon1 = null;
+            RoleIcon2 = null;
+
+            List<Role> assignedRoles = Player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
+            if (assignedRoles.Count > 0)
+            {
+                RoleIcon1 = assignedRoles.ElementAt(0).Icon;
+                if (assignedRoles.Count > 1)
+                    RoleIcon2 = assignedRoles.ElementAt(1).Icon;
+            }
+
             string text = Player.AccountName;
 
             text += " (";
@@ -217,11 +227,15 @@ namespace Torlando.SquadTracker.SquadInterface
 
             Character character = Player.CurrentCharacter;
             if (character != null && character.Name != "")
-                text += "\n\n" + character.Name + "\n" + Specialization.GetEliteName(character.Specialization, character.Profession);
+            {
+                string elite = Specialization.GetEliteName(character.Specialization, character.Profession);
+                string core = Specialization.GetCoreName(character.Profession);
+                text += "\n\n" + character.Name + "\n" + core + " (" + elite + ")";
+            }
 
             string roleStr = "";
-            for (int i = 0; i < Player.Roles.Count(); i++)
-                roleStr += Player.Roles.ElementAt(i).Name + ((i != Player.Roles.Count() - 1) ? ", " : "");
+            for (int i = 0; i < assignedRoles.Count; i++)
+                roleStr += assignedRoles.ElementAt(i).Name + ((i != assignedRoles.Count - 1) ? ", " : "");
             text += "\n\nAssigned Roles: " + roleStr;
 
             BasicTooltipText = text;
@@ -247,7 +261,12 @@ namespace Torlando.SquadTracker.SquadInterface
 
             _menu = new ContextMenuStrip();
 
-            List<ContextMenuStripItem> items = new List<ContextMenuStripItem>();
+            string name = (Player.CurrentCharacter != null) ? Player.CurrentCharacter.Name : Player.AccountName;
+            List <ContextMenuStripItem> items = new List<ContextMenuStripItem>()
+            {
+                new ContextMenuStripItem(name)
+            };
+
             var assignedRoles = Player.Roles;
 
             foreach (var role in _roles.OrderBy(role => role.Name.ToLowerInvariant()))

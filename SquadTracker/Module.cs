@@ -59,6 +59,9 @@ namespace Torlando.SquadTracker
         public SettingEntry<KeyBinding> ToggleSquadInterface { get; private set; }
         private bool _squadInterfaceShouldShow = false;
 
+        public static SettingEntry<bool> PlayerWithRoleLeaveNotification { get; private set; }
+        public static SettingEntry<bool> KeepPlayerRolesWhenRejoining { get; private set; }
+
         [ImportingConstructor]
         public Module([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
@@ -85,7 +88,19 @@ namespace Torlando.SquadTracker
                 () => ""
             );
             _settingSquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
-            
+
+            PlayerWithRoleLeaveNotification = settings.DefineSetting(
+                "PlayerWithRoleLeaveNotification",
+                false, () => "Enable Notifications for when Player with Role Leaves",
+                () => "Enable notifications for when a players with a role leaves the squad."
+            );
+
+            KeepPlayerRolesWhenRejoining = settings.DefineSetting(
+                "KeepPlayerRolesWhenRejoining",
+                false, () => "Keep Assigned Roles when Player Rejoins the Squad",
+                () => "Keep the assigned roles after the player left and then later join the squad."
+            );
+
             _settingSquadInterfaceEnable = settings.DefineSetting(
                 "EnableSquadInterface",
                 false, () => "Enable SquadInterface",

@@ -1,7 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Blish_HUD;
+using Blish_HUD.Controls;
 using BridgeHandler;
+using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker
 {
@@ -94,6 +98,47 @@ namespace Torlando.SquadTracker
             this.PlayerJoinedInstance?.Invoke(player);
         }
 
+        private void PlayerLeftNotification(Player player)
+        {
+            if (Module.PlayerWithRoleLeaveNotification.Value)
+            {
+                if (player.Roles.Count > 0)
+                {
+                    string name = (player.CurrentCharacter != null) ? player.CurrentCharacter.Name + " (" + player.AccountName + ")" : player.AccountName;
+                    List<Role> roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
+                    string roleStr = String.Join(", ", roles.Select(x => x.Name).ToArray());
+                    string role = (roles.Count > 1) ? "roles" : "role";
+                    string str = name + " with " + role + " '" + roleStr + "' left the squad.";
+
+                    const int lineBreak = 65;
+                    int index = 0;
+
+                    while (index != -1 && (index + lineBreak) < str.Length)
+                    {
+                        int start = (((index + lineBreak) > str.Length) ? str.Length : index + lineBreak) - 1;
+                        int count = start - index + 1;
+                        index = str.LastIndexOf(' ', start, count);
+
+                        if (index != -1)
+                        {
+                            StringBuilder sb = new StringBuilder(str);
+                            sb[index] = '\n';
+                            str = sb.ToString();
+                        }
+                    }
+
+                    ScreenNotification.ShowNotification(str, ScreenNotification.NotificationType.Info, null, 6);
+                }
+            }
+        }
+
+        public void RemovePlayer(Player player)
+        {
+            foreach (Character ch in player.KnownCharacters)
+                _characters.Remove(ch.Name);
+            _players.Remove(player.AccountName);
+        }
+
         private void OnPlayerRemove(Handler.PlayerInfo playerInfo)
         {
             Logger.Info("Removing {}", playerInfo.accountName);
@@ -113,6 +158,8 @@ namespace Torlando.SquadTracker
 
                 player.IsInInstance = false;
                 this.PlayerLeftInstance?.Invoke(player.AccountName);
+
+                PlayerLeftNotification(player);
             }
         }
 

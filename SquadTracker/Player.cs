@@ -43,6 +43,12 @@ namespace Torlando.SquadTracker
             }
         }
 
+        public void ClearRoles()
+        {
+            _roles.Clear();
+            OnRoleUpdated?.Invoke();
+        }
+
         private List<Role> _roles = new List<Role>();
 
         public Character CurrentCharacter

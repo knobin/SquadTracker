@@ -24,7 +24,7 @@ namespace Torlando.SquadTracker.SquadInterface
             _activeBackgroundColor = _bgColor;
             _tileLoadedTexture = squad;
             GenerateResizeArrow(_resizeArrowSize.X, _resizeArrowSize.Y, Color.LightGray);
-            _lastSize = this.Size;
+            
             _errorMessage = new Label() 
             { 
                 Font = GameService.Content.DefaultFont18, 
@@ -54,7 +54,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private Point _tileSize = new Point(87, 52);
         private readonly Point _tileMaxSize = new Point(87, 52);
-        private readonly Point _tileMinSize = new Point(30, 30);
+        private readonly Point _tileMinSize = new Point(28, 28);
         private readonly int _tileTextThreshold = 35;
         private uint _tilesPerRow = 5;
         private readonly uint _tilesPerRowMin = 5;
@@ -69,10 +69,7 @@ namespace Torlando.SquadTracker.SquadInterface
         private Point _resizeArrowSize = new Point(20, 20);
         private bool _paintResizeArrow = false;
 
-        private Point _lastSize = new Point(1, 1);
-        private int _lastChildrenCount = 0;
-
-        private Label _errorMessage;
+        private readonly Label _errorMessage;
 
         private void GenerateResizeArrow(int width, int height, Color color)
         {
@@ -331,11 +328,6 @@ namespace Torlando.SquadTracker.SquadInterface
             List<SquadInterfaceSubgroup> subgroups = _children.OfType<SquadInterfaceSubgroup>().ToList();
             if (subgroups.Count == 0) return;
 
-            if (_lastChildrenCount == _children.Count && _lastSize == Size) return;
-
-            _lastChildrenCount = _children.Count;
-            _lastSize = Size;
-
             uint maxSubCount = 1;
 
             for (int i = 0; i < subgroups.Count; i++)
@@ -347,27 +339,26 @@ namespace Torlando.SquadTracker.SquadInterface
             int availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
             int tileX = (int)(availX / _tilesPerRow);
 
-            if (maxSubCount > _tilesPerRow)
+            if (tileX > _tileMaxSize.X)
             {
-                if (tileX > _tileMaxSize.X)
+                if (maxSubCount > _tilesPerRow)
                 {
                     ++_tilesPerRow;
                     availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
                     tileX = (int)(availX / _tilesPerRow);
                 }
-                else
+            }
+            else
+            {
+                int underMax = (int)(_tileMaxSize.X * (_tilesPerRow - 1));
+                int current = (int)(tileX * _tilesPerRow);
+
+                if (underMax > current && _tilesPerRow > _tilesPerRowMin)
                 {
-                    int underMax = (int)(_tileMaxSize.X * (_tilesPerRow - 1));
-                    int current = (int)(tileX * _tilesPerRow);
-
-                    if (underMax > current && _tilesPerRow > _tilesPerRowMin)
-                    {
-                        --_tilesPerRow;
-                        availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
-                        tileX = (int)(availX / _tilesPerRow);
-                    }
+                    --_tilesPerRow;
+                    availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
+                    tileX = (int)(availX / _tilesPerRow);
                 }
-
             }
 
             if (tileX > _tileMaxSize.X)
