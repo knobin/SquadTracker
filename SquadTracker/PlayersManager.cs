@@ -108,9 +108,9 @@ namespace Torlando.SquadTracker
                     List<Role> roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
                     string roleStr = String.Join(", ", roles.Select(x => x.Name).ToArray());
                     string role = (roles.Count > 1) ? "roles" : "role";
-                    string str = name + " with " + role + " '" + roleStr + "' left the squad.";
+                    string str = name + " from subgroup " + player.Subgroup.ToString() + " with " + role + " '" + roleStr + "' left the squad.";
 
-                    const int lineBreak = 65;
+                    const int lineBreak = 70;
                     int index = 0;
 
                     while (index != -1 && (index + lineBreak) < str.Length)
