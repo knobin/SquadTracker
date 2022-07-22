@@ -67,6 +67,11 @@ namespace Torlando.SquadTracker.SquadPanel
             return _playerDisplays.ContainsKey(accountName);
         }
 
+        public List<PlayerDisplay> PlayerDisplays()
+        {
+            return _squadMembersPanel.Children.Cast<PlayerDisplay>().ToList();
+        }
+
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles)
         {
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();

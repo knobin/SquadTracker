@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
 using Blish_HUD.Controls;
+using Torlando.SquadTracker.SearchPanel;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -13,6 +14,7 @@ namespace Torlando.SquadTracker.SquadPanel
         private readonly PlayerIconsManager _iconsManager;
         private readonly IEnumerable<Role> _roles;
         private readonly TextBox _searchbar;
+        private TaskQueue _queue = new TaskQueue();
 
         private readonly Squad _squad;
 
@@ -30,19 +32,26 @@ namespace Torlando.SquadTracker.SquadPanel
             _iconsManager = iconsManager;
             _roles = roles;
             _searchbar = searchbar;
-
-            _searchbar.TextChanged += OnSearchInput;
             _squad = _squadManager.GetSquad();
         }
 
         private void OnSearchInput(object sender, System.EventArgs e)
+        {
+            string input = _searchbar.Text;
+            _queue.Enqueue(() =>
+            {
+                Filter(input);
+            });
+        }
+
+        private void Filter(string input)
         {
             Dictionary<string, int> order = new Dictionary<string, int>();
 
             foreach (var member in _squad.CurrentMembers.ToList())
             {
                 bool exists = View.Exists(member.AccountName);
-                int match = Match(member, _searchbar.Text);
+                int match = Match(member, input);
                 if (match > 0)
                 {
                     order.Add(member.AccountName, match);
@@ -100,10 +109,16 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.CharacterChangedSpecialization += ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad += RemovePlayer;
             _squadManager.PlayerUpdateSquad += UpdatePlayer;
+
+            _queue.Start();
+
+            _searchbar.TextChanged += OnSearchInput;
         }
 
         protected override void Unload()
         {
+            _queue.Stop();
+
             // To allow for garbage collection.
             _squadManager.PlayerJoinedSquad -= AddPlayer;
             _playersManager.CharacterChangedSpecialization -= ChangeCharacterSpecialization;
@@ -111,69 +126,63 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadManager.PlayerUpdateSquad -= UpdatePlayer;
         }
 
-        private void UpdateSorting(string input)
-        {
-            Dictionary<string, int> order = new Dictionary<string, int>();
-
-            foreach (var member in _squad.CurrentMembers.ToList())
-            {
-                int match = Match(member, input);
-
-                if (View.Exists(member.AccountName) && match > 0)
-                {
-                    order.Add(member.AccountName, match);
-                }
-            }
-
-            if (order.Count > 0)
-            {
-                View.Sort(order);
-            }
-        }
-
         private void AddPlayer(Player player, bool isReturning)
         {
-            Character character = player.CurrentCharacter;
-            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
-            
-            if (Match(player, _searchbar.Text) > 0)
+            _queue.Enqueue(() =>
             {
-                View.DisplayPlayer(player, icon, _roles);
-                UpdateSorting(_searchbar.Text);
-            }
+                Character character = player.CurrentCharacter;
+                var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
+
+                if (!View.Exists(player.AccountName))
+                {
+                    if (Match(player, _searchbar.Text) > 0)
+                    {
+                        View.DisplayPlayer(player, icon, _roles);
+                        Filter(_searchbar.Text);
+                    }
+                }
+            });
         }
 
         private void UpdatePlayer(Player player)
         {
-            Character character = player.CurrentCharacter;
-            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
-            
-            if (Match(player, _searchbar.Text) > 0)
+            _queue.Enqueue(() =>
             {
-                View.UpdatePlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
-            }
-            else
-            {
-                View.RemovePlayer(player.AccountName);
-            }
+                Character character = player.CurrentCharacter;
+                var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
-            UpdateSorting(_searchbar.Text);
+                if (View.Exists(player.AccountName))
+                {
+                    if(Match(player, _searchbar.Text) > 0)
+                    {
+                        View.UpdatePlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
+                        Filter(_searchbar.Text);
+                    }
+                else
+                    {
+                        View.RemovePlayer(player.AccountName);
+                    }
+                } 
+            });
         }
 
         private void ChangeCharacterSpecialization(Character character)
         {
-            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
+            _queue.Enqueue(() =>
+            {
+                var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
-            // TODO: Check with search input? (sorting doesnt depend on specialization for now).
-            View.SetPlayerIcon(character.Player, icon);
+                // TODO: Check with search input? (sorting doesnt depend on specialization for now).
+                View.SetPlayerIcon(character.Player, icon);
+            });
         }
 
         private void RemovePlayer(string accountName)
         {
-            var player = _squad.FormerMembers.FirstOrDefault(p => p.AccountName == accountName);
-            if (player == null) return;
-
-            View.RemovePlayer(accountName);
+            _queue.Enqueue(() =>
+            {
+                View.RemovePlayer(accountName);
+            });
         }
 
         public void UpdateSelectedRoles(string accountName, string role, int index)
