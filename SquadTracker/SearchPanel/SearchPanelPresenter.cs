@@ -109,6 +109,7 @@ namespace Torlando.SquadTracker.SearchPanel
             _playersManager.CharacterChangedSpecialization += ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad += RemovePlayer;
             _squadManager.PlayerUpdateSquad += UpdatePlayer;
+            _squadManager.ClearSquad += ClearPlayers;
 
             _queue.Start();
 
@@ -124,6 +125,15 @@ namespace Torlando.SquadTracker.SearchPanel
             _playersManager.CharacterChangedSpecialization -= ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad -= RemovePlayer;
             _squadManager.PlayerUpdateSquad -= UpdatePlayer;
+            _squadManager.ClearSquad -= ClearPlayers;
+        }
+
+        private void ClearPlayers()
+        {
+            _queue.Enqueue(() =>
+            {
+                View.Clear();
+            });
         }
 
         private void AddPlayer(Player player, bool isReturning)

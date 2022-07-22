@@ -245,6 +245,26 @@ namespace Torlando.SquadTracker.SquadInterface
             }
         }
 
+        public void Clear()
+        {
+            List<SquadInterfaceTile> tiles = _tiles.ToList();
+            for (int i = 0; i < tiles.Count; ++i)
+            {
+                tiles[i].Parent = null;
+                tiles[i].Dispose();
+            }
+
+            List<SquadInterfaceSubgroup> subgroups = _subgroups.ToList();
+            for (int i = 0; i < subgroups.Count; ++i)
+            {
+                subgroups[i].Parent = null;
+                subgroups[i].Dispose();
+            }
+
+            _tiles.Clear();
+            _subgroups.Clear();
+        }
+
         public void Add(Player player)
         {
             if (_tiles.Find(t => t.Player.AccountName == player.AccountName) != null) return;

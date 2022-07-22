@@ -16,12 +16,14 @@ namespace Torlando.SquadTracker
         public delegate void CharacterChangedSpecializationHandler(Character character);
         public delegate void PlayerUpdatedHandler(Player newPlayer);
         public delegate void SelfUpdatedHandler(string accountName);
+        public delegate void ClearPlayers();
 
         public event PlayerJoinedInstanceHandler PlayerJoinedInstance;
         public event PlayerLeftInstanceHandler PlayerLeftInstance;
         public event PlayerUpdatedHandler PlayerUpdated;
         public event CharacterChangedSpecializationHandler CharacterChangedSpecialization;
         public event SelfUpdatedHandler SelfUpdated;
+        public event ClearPlayers PlayerClear;
 
         private readonly IDictionary<string, Player> _players = new Dictionary<string, Player>();
         private readonly IDictionary<string, Character> _characters = new Dictionary<string, Character>();
@@ -145,12 +147,8 @@ namespace Torlando.SquadTracker
             if (_self == playerInfo.accountName)
             {
                 Logger.Info("Removing self! {}", playerInfo.accountName);
-                List<string> keys = new List<string>(_players.Keys);
-                foreach (string key in keys)
-                {
-                    _players[key].IsInInstance = false;
-                    this.PlayerLeftInstance?.Invoke(_players[key].AccountName);
-                }
+                this.PlayerClear?.Invoke();
+                _players.Clear();
             }
             else
             {

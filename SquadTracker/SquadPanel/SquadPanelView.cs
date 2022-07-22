@@ -148,6 +148,19 @@ namespace Torlando.SquadTracker.SquadPanel
             Sort();
         }
 
+        public void Clear()
+        {
+            List<PlayerDisplay> playerDisplays = _squadMembersPanel.Children.Cast<PlayerDisplay>().ToList();
+
+            for (int i = 0; i < playerDisplays.Count; i++)
+            {
+                playerDisplays[i].Parent = null;
+                playerDisplays[i].Dispose();
+            }
+
+            _playerDisplays.Clear();
+        }
+
         private void OnRoleUpdate(PlayerDisplay pd, Player player)
         {
             var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant());

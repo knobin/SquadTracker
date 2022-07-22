@@ -112,6 +112,19 @@ namespace Torlando.SquadTracker.SearchPanel
             _playerDisplays.Remove(accountName);
         }
 
+        public void Clear()
+        {
+            List<PlayerDisplay> playerDisplays = PlayerDisplays();
+
+            for (int i = 0; i < playerDisplays.Count; i++)
+            {
+                playerDisplays[i].Parent = null;
+                playerDisplays[i].Dispose();
+            }
+
+            _playerDisplays.Clear();
+        }
+
         private void OnRoleUpdate(PlayerDisplay pd, Player player)
         {
             var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant());

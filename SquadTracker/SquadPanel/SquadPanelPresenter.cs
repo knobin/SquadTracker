@@ -47,6 +47,7 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.CharacterChangedSpecialization += ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad += RemovePlayer;
             _squadManager.PlayerUpdateSquad += UpdatePlayer;
+            _squadManager.ClearSquad += ClearPlayers;
 
             _squadManager.BridgeConnected += OnBridgeConnection;
             _squadManager.BridgeDisconnected += OnBridgeDisconnection;
@@ -64,6 +65,7 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.CharacterChangedSpecialization -= ChangeCharacterSpecialization;
             _squadManager.PlayerLeftSquad -= RemovePlayer;
             _squadManager.PlayerUpdateSquad -= UpdatePlayer;
+            _squadManager.ClearSquad -= ClearPlayers;
 
             _squadManager.BridgeConnected -= OnBridgeConnection;
             _squadManager.BridgeDisconnected -= OnBridgeDisconnection;
@@ -77,6 +79,11 @@ namespace Torlando.SquadTracker.SquadPanel
         private void OnBridgeDisconnection()
         {
             View.ShowErrorMessage(Constants.Placeholder.BridgeHandlerErrorMessage);
+        }
+
+        private void ClearPlayers()
+        {
+            View.Clear();
         }
 
         private void AddPlayer(Player player, bool isReturning)
