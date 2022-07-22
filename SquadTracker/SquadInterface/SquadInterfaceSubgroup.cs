@@ -6,7 +6,6 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System.Collections.Generic;
 using System.Linq;
-using Torlando.SquadTracker.SquadPanel;
 
 namespace Torlando.SquadTracker.SquadInterface
 {

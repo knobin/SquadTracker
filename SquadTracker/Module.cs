@@ -50,10 +50,10 @@ namespace Torlando.SquadTracker
         #endregion
 
         private SettingEntry<bool> _areColorIconsEnabled; //todo: remove after refactor
-        public static SettingEntry<Point> _settingSquadInterfaceLocation;
-        public static SettingEntry<Point> _settingSquadInterfaceSize;
-        public static SettingEntry<bool> _settingSquadInterfaceMoving;
-        public static SettingEntry<bool> _settingSquadInterfaceEnable;
+        public static SettingEntry<Point> SquadInterfaceLocation { get; private set; }
+        public static SettingEntry<Point> SquadInterfaceSize { get; private set; }
+        public static SettingEntry<bool> SquadInterfaceMoving { get; private set; }
+        public static SettingEntry<bool> SquadInterfaceEnable { get; private set; }
         private AsyncTexture2D _squadTileTexture;
 
         public SettingEntry<KeyBinding> ToggleSquadInterface { get; private set; }
@@ -76,18 +76,18 @@ namespace Torlando.SquadTracker
                 true, () => "Enable Color Icons", 
                 () => "When enabled, replaces the monochrome icons with icons colored to match their profession color"
             );
-            _settingSquadInterfaceLocation = settings.DefineSetting(
+            SquadInterfaceLocation = settings.DefineSetting(
                 "SquadInterfaceLocation",
                 new Point(100, 100), () => "SquadInterface Location.",
                 () => ""
             );
-            _settingSquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
-            _settingSquadInterfaceSize = settings.DefineSetting(
+            SquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
+            SquadInterfaceSize = settings.DefineSetting(
                 "SquadInterfaceSize",
                 new Point(100, 250), () => "SquadInterface Size.",
                 () => ""
             );
-            _settingSquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
+            SquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
 
             PlayerWithRoleLeaveNotification = settings.DefineSetting(
                 "PlayerWithRoleLeaveNotification",
@@ -101,19 +101,19 @@ namespace Torlando.SquadTracker
                 () => "Keep the assigned roles after the player left and then later join the squad."
             );
 
-            _settingSquadInterfaceEnable = settings.DefineSetting(
+            SquadInterfaceEnable = settings.DefineSetting(
                 "EnableSquadInterface",
                 false, () => "Enable SquadInterface",
                 () => "SquadInterface to be enabled or not."
             );
-            _settingSquadInterfaceEnable.SettingChanged += EnableSquadInterface;
+            SquadInterfaceEnable.SettingChanged += EnableSquadInterface;
 
-            _settingSquadInterfaceMoving = settings.DefineSetting(
+            SquadInterfaceMoving = settings.DefineSetting(
                 "EnableSquadInterfaceDrag",
                 false, () => "Enable SquadInterface Moving",
                 () => "SquadInterface can be moved when enabled."
             );
-            _settingSquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
+            SquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
 
             ToggleSquadInterface = settings.DefineSetting(
                 "ToggleSquadInterface",
@@ -125,7 +125,7 @@ namespace Torlando.SquadTracker
             ToggleSquadInterface.Value.Enabled = true;
             ToggleSquadInterface.Value.Activated += delegate
             {
-                if (_settingSquadInterfaceEnable.Value)
+                if (SquadInterfaceEnable.Value)
                 {
                     _squadInterfaceShouldShow = !_squadInterfaceView.Visible;
                     _squadInterfaceView.Visible = !_squadInterfaceView.Visible;
@@ -265,7 +265,7 @@ namespace Torlando.SquadTracker
 
         protected override void Update(GameTime gameTime)
         {
-            if (_settingSquadInterfaceEnable.Value)
+            if (SquadInterfaceEnable.Value)
             {
                 if (GameService.GameIntegration.Gw2Instance.IsInGame && !GameService.Gw2Mumble.UI.IsMapOpen && _squadInterfaceShouldShow)
                     _squadInterfaceView.Show();
@@ -284,22 +284,22 @@ namespace Torlando.SquadTracker
 
         private void UpdateSquadInterfaceLocation(object sender = null, ValueChangedEventArgs<Point> e = null)
         {
-            _squadInterfaceView.Location = _settingSquadInterfaceLocation.Value;
+            _squadInterfaceView.Location = SquadInterfaceLocation.Value;
         }
 
         private void UpdateSquadInterfaceSize(object sender = null, ValueChangedEventArgs<Point> e = null)
         {
-            _squadInterfaceView.Size = _settingSquadInterfaceSize.Value;
+            _squadInterfaceView.Size = SquadInterfaceSize.Value;
         }
 
         private void UpdateSquadInterfaceMoving(object sender = null, ValueChangedEventArgs<bool> e = null)
         {
-            _squadInterfaceView.EnableMoving = _settingSquadInterfaceMoving.Value;
+            _squadInterfaceView.EnableMoving = SquadInterfaceMoving.Value;
         }
 
         private void EnableSquadInterface(object sender = null, ValueChangedEventArgs<bool> e = null)
         {
-            _squadInterfaceView.Visible = _settingSquadInterfaceEnable.Value;
+            _squadInterfaceView.Visible = SquadInterfaceEnable.Value;
             _squadInterfaceShouldShow = _squadInterfaceView.Visible;
         }
     }

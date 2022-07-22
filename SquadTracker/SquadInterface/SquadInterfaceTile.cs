@@ -233,10 +233,13 @@ namespace Torlando.SquadTracker.SquadInterface
                 text += "\n\n" + character.Name + "\n" + core + " (" + elite + ")";
             }
 
-            string roleStr = "";
-            for (int i = 0; i < assignedRoles.Count; i++)
-                roleStr += assignedRoles.ElementAt(i).Name + ((i != assignedRoles.Count - 1) ? ", " : "");
-            text += "\n\nAssigned Roles: " + roleStr;
+            if (assignedRoles.Count > 0)
+            {
+                string roleStr = "";
+                for (int i = 0; i < assignedRoles.Count; i++)
+                    roleStr += assignedRoles.ElementAt(i).Name + ((i != assignedRoles.Count - 1) ? ", " : "");
+                text += "\n\nAssigned Roles: " + roleStr;
+            }
 
             BasicTooltipText = text;
         }

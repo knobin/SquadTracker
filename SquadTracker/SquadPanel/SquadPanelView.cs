@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
 using Blish_HUD;
 using Torlando.SquadTracker.Constants;
-using static Torlando.SquadTracker.SquadPanel.SquadPlayerSort;
+using Torlando.SquadTracker.SquadInterface;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -102,9 +102,9 @@ namespace Torlando.SquadTracker.SquadPanel
         private static int CompareBySubgroup(PlayerDisplay pd1, PlayerDisplay pd2)
         {
             Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
-            PlayerSortInfo p1 = new PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
+            SquadPlayerSort.PlayerSortInfo p1 = new SquadPlayerSort.PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
             Character c2 = (pd2.CharacterName != "") ? new Character(pd2.CharacterName, pd2.Profession, pd2.Specialization) : null;
-            PlayerSortInfo p2 = new PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
+            SquadPlayerSort.PlayerSortInfo p2 = new SquadPlayerSort.PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
             return SquadPlayerSort.Compare(p1, p2);
         }
 

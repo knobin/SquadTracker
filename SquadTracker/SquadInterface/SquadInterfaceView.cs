@@ -60,7 +60,7 @@ namespace Torlando.SquadTracker.SquadInterface
         private readonly uint _tilesPerRowMin = 5;
         private readonly uint _tileSpacing = 5;
 
-        private Point _minSize = new Point(50, 250);
+        private Point _minSize = new Point(40, 80);
 
         private readonly List<SquadInterfaceTile> _tiles = new List<SquadInterfaceTile>();
         private readonly List<SquadInterfaceSubgroup> _subgroups = new List<SquadInterfaceSubgroup>();
@@ -122,6 +122,14 @@ namespace Torlando.SquadTracker.SquadInterface
 
         protected override void OnResized(ResizedEventArgs e)
         {
+            Point size = Size;
+
+            size.X = (size.X < _minSize.X) ? _minSize.X : size.X;
+            size.Y = (size.Y < _minSize.Y) ? _minSize.Y : size.Y;
+
+            if (size != Size)
+                Size = size;
+
             UpdateTilePositions();
 
             base.OnResized(e);
@@ -149,13 +157,13 @@ namespace Torlando.SquadTracker.SquadInterface
             if (_dragMoving)
             {
                 _dragMoving = false;
-                Module._settingSquadInterfaceLocation.Value = this.Location;
+                Module.SquadInterfaceLocation.Value = this.Location;
             }
 
             if (_dragResizing)
             {
                 _dragResizing = false;
-                Module._settingSquadInterfaceSize.Value = this.Size;
+                Module.SquadInterfaceSize.Value = this.Size;
             }
 
             base.OnLeftMouseButtonPressed(e);
@@ -199,7 +207,7 @@ namespace Torlando.SquadTracker.SquadInterface
                     else
                     {
                         _dragMoving = false;
-                        Module._settingSquadInterfaceLocation.Value = this.Location;
+                        Module.SquadInterfaceLocation.Value = this.Location;
                     }
                 }
                 else if (_dragResizing)
@@ -229,7 +237,7 @@ namespace Torlando.SquadTracker.SquadInterface
                     else
                     {
                         _dragResizing = false;
-                        Module._settingSquadInterfaceSize.Value = this.Size;
+                        Module.SquadInterfaceSize.Value = this.Size;
                     }
                 }
 

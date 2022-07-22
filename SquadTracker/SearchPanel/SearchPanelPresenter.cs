@@ -3,9 +3,9 @@ using System.Linq;
 using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
 using Blish_HUD.Controls;
-using Torlando.SquadTracker.SearchPanel;
+using Torlando.SquadTracker.SquadPanel;
 
-namespace Torlando.SquadTracker.SquadPanel
+namespace Torlando.SquadTracker.SearchPanel
 {
     internal class SearchPanelPresenter : Presenter<SearchPanelView, object>
     {
@@ -14,7 +14,7 @@ namespace Torlando.SquadTracker.SquadPanel
         private readonly PlayerIconsManager _iconsManager;
         private readonly IEnumerable<Role> _roles;
         private readonly TextBox _searchbar;
-        private TaskQueue _queue = new TaskQueue();
+        private readonly TaskQueue _queue = new TaskQueue();
 
         private readonly Squad _squad;
 

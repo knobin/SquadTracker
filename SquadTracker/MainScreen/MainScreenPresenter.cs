@@ -3,6 +3,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Torlando.SquadTracker.RolesScreen;
 using Torlando.SquadTracker.SquadPanel;
+using Torlando.SquadTracker.SearchPanel;
 
 namespace Torlando.SquadTracker.MainScreen
 {
