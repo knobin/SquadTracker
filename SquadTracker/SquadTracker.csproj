@@ -93,6 +93,7 @@
     <Compile Include="SquadPanel\PlayerDisplay.cs" />
     <Compile Include="PlayerIconsManager.cs" />
     <Compile Include="Player.cs" />
+    <Compile Include="SquadPanel\PlayerDisplayPanel.cs" />
     <Compile Include="SquadPanel\PlayerModel.cs" />
     <Compile Include="RolesScreen\Role.cs" />
     <Compile Include="SquadPanel\Squad.cs" />

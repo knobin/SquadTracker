@@ -15,7 +15,7 @@ namespace Torlando.SquadTracker.SearchPanel
     {
         #region Controls
         
-        private FlowPanel _squadMembersPanel;
+        private PlayerDisplayPanel _squadMembersPanel;
         private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
         private readonly IEnumerable<Role> _roles;
 
@@ -30,16 +30,12 @@ namespace Torlando.SquadTracker.SearchPanel
 
         protected override void Build(Container buildPanel)
         {
-            _squadMembersPanel = new FlowPanel
+            _squadMembersPanel = new PlayerDisplayPanel()
             {
-                FlowDirection = ControlFlowDirection.LeftToRight,
-                ControlPadding = new Vector2(8, 8),
                 Parent = buildPanel,
                 Location = new Point(buildPanel.ContentRegion.Left, buildPanel.ContentRegion.Top),
-                CanScroll = true,
                 Size = new Point(buildPanel.ContentRegion.Width, buildPanel.ContentRegion.Height), //
-                Title = "Search result",
-                ShowBorder = true
+                Title = "Search result"
             };
         }
 
@@ -65,11 +61,6 @@ namespace Torlando.SquadTracker.SearchPanel
         public bool Exists(string accountName)
         {
             return _playerDisplays.ContainsKey(accountName);
-        }
-
-        public List<PlayerDisplay> PlayerDisplays()
-        {
-            return _squadMembersPanel.Children.Cast<PlayerDisplay>().ToList();
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles)
@@ -114,12 +105,12 @@ namespace Torlando.SquadTracker.SearchPanel
 
         public void Clear()
         {
-            List<PlayerDisplay> playerDisplays = PlayerDisplays();
+            _squadMembersPanel.Clear();
 
-            for (int i = 0; i < playerDisplays.Count; i++)
+            List<string> keys = new List<string>(_playerDisplays.Keys);
+            foreach (string key in keys)
             {
-                playerDisplays[i].Parent = null;
-                playerDisplays[i].Dispose();
+                _playerDisplays[key].Dispose();
             }
 
             _playerDisplays.Clear();

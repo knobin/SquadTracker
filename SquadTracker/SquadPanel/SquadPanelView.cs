@@ -6,7 +6,6 @@ using System.Linq;
 using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
 using Blish_HUD;
-using Torlando.SquadTracker.Constants;
 using Torlando.SquadTracker.SquadInterface;
 
 namespace Torlando.SquadTracker.SquadPanel
@@ -15,8 +14,8 @@ namespace Torlando.SquadTracker.SquadPanel
     {
         #region Controls
         
-        private FlowPanel _squadMembersPanel;
-        private FlowPanel _formerSquadMembersPanel;
+        private PlayerDisplayPanel _squadMembersPanel;
+        private PlayerDisplayPanel _formerSquadMembersPanel;
         private Label _bridgeNotConnected;
         private StandardButton _clearFormerSquadButton;
         private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
@@ -33,28 +32,20 @@ namespace Torlando.SquadTracker.SquadPanel
 
         protected override void Build(Container buildPanel)
         {
-            _squadMembersPanel = new FlowPanel
+            _squadMembersPanel = new PlayerDisplayPanel()
             {
-                FlowDirection = ControlFlowDirection.LeftToRight,
-                ControlPadding = new Vector2(8, 8),
                 Parent = buildPanel,
                 Location = new Point(buildPanel.ContentRegion.Left, buildPanel.ContentRegion.Top),
-                CanScroll = true,
                 Size = new Point(buildPanel.ContentRegion.Width, 530), //
                 Title = "Current Squad Members",
-                ShowBorder = true,
                 BasicTooltipText = "You loaded Blish HUD after starting Guild Wars 2. Please change maps to refresh."
             };
-            _formerSquadMembersPanel = new FlowPanel
+            _formerSquadMembersPanel = new PlayerDisplayPanel()
             {
-                FlowDirection = ControlFlowDirection.LeftToRight,
-                ControlPadding = new Vector2(8, 8),
                 Parent = buildPanel,
                 Location = new Point(buildPanel.ContentRegion.Left, _squadMembersPanel.Bottom + 10),
-                CanScroll = true,
                 Size = new Point(_squadMembersPanel.Width, 150),
-                Title = "Former Squad Members",
-                ShowBorder = true
+                Title = "Former Squad Members"
             };
             _clearFormerSquadButton = new StandardButton
             {
@@ -99,7 +90,7 @@ namespace Torlando.SquadTracker.SquadPanel
             _bridgeNotConnected.Text = "";
         }
 
-        private static int CompareBySubgroup(PlayerDisplay pd1, PlayerDisplay pd2)
+        private static int Compare(PlayerDisplay pd1, PlayerDisplay pd2)
         {
             Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
             SquadPlayerSort.PlayerSortInfo p1 = new SquadPlayerSort.PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
@@ -111,7 +102,7 @@ namespace Torlando.SquadTracker.SquadPanel
         private void Sort()
         {
             if (_squadMembersPanel.Visible)
-                _squadMembersPanel.SortChildren<PlayerDisplay>(CompareBySubgroup);
+                _squadMembersPanel.SortChildren<PlayerDisplay>(Compare);
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles)
@@ -150,12 +141,13 @@ namespace Torlando.SquadTracker.SquadPanel
 
         public void Clear()
         {
-            List<PlayerDisplay> playerDisplays = _squadMembersPanel.Children.Cast<PlayerDisplay>().ToList();
+            _squadMembersPanel.Clear();
+            _formerSquadMembersPanel.Clear();
 
-            for (int i = 0; i < playerDisplays.Count; i++)
+            List<string> keys = new List<string>(_playerDisplays.Keys);
+            foreach (string key in keys)
             {
-                playerDisplays[i].Parent = null;
-                playerDisplays[i].Dispose();
+                _playerDisplays[key].Dispose();
             }
 
             _playerDisplays.Clear();
