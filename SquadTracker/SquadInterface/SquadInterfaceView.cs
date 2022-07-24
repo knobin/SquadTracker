@@ -57,7 +57,7 @@ namespace Torlando.SquadTracker.SquadInterface
         private readonly Point _tileMinSize = new Point(28, 28);
         private readonly int _tileTextThreshold = 35;
         private uint _tilesPerRow = 5;
-        private readonly uint _tilesPerRowMin = 5;
+        private const uint _tilesSplitPoint = 5;
         private readonly uint _tileSpacing = 5;
 
         private Point _minSize = new Point(40, 80);
@@ -364,28 +364,33 @@ namespace Torlando.SquadTracker.SquadInterface
                     maxSubCount = (uint)subgroups[i].Children.Count;
             }
 
-            int availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
-            int tileX = (int)(availX / _tilesPerRow);
+            uint tilesPerRow = (maxSubCount > _tilesSplitPoint) ? _tilesPerRow : maxSubCount;
 
-            if (tileX > _tileMaxSize.X)
+            int availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (tilesPerRow - 1));
+            int tileX = (int)(availX / tilesPerRow);
+
+            if (maxSubCount > _tilesSplitPoint)
             {
-                if (maxSubCount > _tilesPerRow)
+                if (tileX > _tileMaxSize.X)
                 {
-                    ++_tilesPerRow;
-                    availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
-                    tileX = (int)(availX / _tilesPerRow);
+                    if (maxSubCount > _tilesPerRow)
+                    {
+                        tilesPerRow = ++_tilesPerRow;
+                        availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (tilesPerRow - 1));
+                        tileX = (int)(availX / tilesPerRow);
+                    }
                 }
-            }
-            else
-            {
-                int underMax = (int)(_tileMaxSize.X * (_tilesPerRow - 1));
-                int current = (int)(tileX * _tilesPerRow);
-
-                if (underMax > current && _tilesPerRow > _tilesPerRowMin)
+                else
                 {
-                    --_tilesPerRow;
-                    availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (_tilesPerRow - 1));
-                    tileX = (int)(availX / _tilesPerRow);
+                    int underMax = (int)(_tileMaxSize.X * (_tilesPerRow - 1));
+                    int current = (int)(tileX * _tilesPerRow);
+
+                    if (underMax > current && _tilesPerRow > _tilesSplitPoint)
+                    {
+                        tilesPerRow = --_tilesPerRow;
+                        availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (tilesPerRow - 1));
+                        tileX = (int)(availX / tilesPerRow);
+                    }
                 }
             }
 
@@ -399,7 +404,7 @@ namespace Torlando.SquadTracker.SquadInterface
             double tileXP = ((double)(tileX - _tileMinSize.X) / (double)(_tileMaxSize.X - _tileMinSize.X));
             _tileSize.Y = _tileMinSize.Y + (int)(tileXP * (double)(_tileMaxSize.Y - _tileMinSize.Y));
 
-            _minSize.X = (int)(_tileSpacing * 10) + (int)(_tileMinSize.X * _tilesPerRow) + (int)(_tileSpacing * (_tilesPerRow - 1));
+            _minSize.X = (int)(_tileSpacing * 10) + (int)(_tileMinSize.X * tilesPerRow) + (int)(_tileSpacing * (tilesPerRow - 1));
         }
 
         private void UpdateTilePositions()

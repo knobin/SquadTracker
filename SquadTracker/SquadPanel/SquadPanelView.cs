@@ -37,8 +37,7 @@ namespace Torlando.SquadTracker.SquadPanel
                 Parent = buildPanel,
                 Location = new Point(buildPanel.ContentRegion.Left, buildPanel.ContentRegion.Top),
                 Size = new Point(buildPanel.ContentRegion.Width, 530), //
-                Title = "Current Squad Members",
-                BasicTooltipText = "You loaded Blish HUD after starting Guild Wars 2. Please change maps to refresh."
+                Title = "Current Squad Members"
             };
             _formerSquadMembersPanel = new PlayerDisplayPanel()
             {
