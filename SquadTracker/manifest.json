@@ -1,6 +1,6 @@
 {
   "name": "Squad Tracker",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "namespace": "Torlando.SquadTracker",
   "package": "SquadTracker.dll",
   "manifest_version": 1,
@@ -18,6 +18,10 @@
     {
       "name": "sonicolasj",
       "username": "sonicolasj.9534"
+    },
+    {
+      "name": "Knobin",
+      "username": "Knobin.5930"
     }
   ],
   "directories": [ "squadtracker" ],
