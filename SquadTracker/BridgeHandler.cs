@@ -13,84 +13,97 @@ using System.Text.Json;
 
 namespace BridgeHandler
 {
+    class Subscribe
+    {
+        public bool Combat { get; set; }
+        public bool Extras { get; set; }
+        public bool Squad { get; set; }
+    }
+
+    class ConnectionInfo
+    {
+        public bool CombatEnabled { get; set; }
+        public bool ExtrasEnabled { get; set; }
+        public bool ExtrasFound { get; set; }
+        public bool SquadEnabled { get; set; }
+    }
+
+    class cbtevent
+    {
+        public UInt64 time { get; set; }
+        public UInt64 src_agent { get; set; }
+        public UInt64 dst_agent { get; set; }
+        public Int32 value { get; set; }
+        public Int32 buff_dmg { get; set; }
+        public UInt32 overstack_value { get; set; }
+        public UInt32 skillid { get; set; }
+        public UInt16 src_instid { get; set; }
+        public UInt16 dst_instid { get; set; }
+        public UInt16 src_master_instid { get; set; }
+        public UInt16 dst_master_instid { get; set; }
+        public Byte iff { get; set; }
+        public Byte buff { get; set; }
+        public Byte result { get; set; }
+        public Byte is_activation { get; set; }
+        public Byte is_buffremove { get; set; }
+        public Byte is_ninety { get; set; }
+        public Byte is_fifty { get; set; }
+        public Byte is_moving { get; set; }
+        public Byte is_statechange { get; set; }
+        public Byte is_flanking { get; set; }
+        public Byte is_shields { get; set; }
+        public Byte is_offcycle { get; set; }
+    }
+
+    class ag
+    {
+        public string name { get; set; }
+        public UInt64 id { get; set; }
+        public UInt32 prof { get; set; }
+        public UInt32 elite { get; set; }
+        public UInt32 self { get; set; }
+        public UInt16 team { get; set; }
+    }
+
+    class PlayerInfo
+    {
+        public string accountName { get; set; }
+        public string characterName { get; set; }
+        public long joinTime { get; set; }
+        public UInt32 profession { get; set; }
+        public UInt32 elite { get; set; }
+        public Byte role { get; set; }
+        public Byte subgroup { get; set; }
+        public bool inInstance { get; set; }
+        public bool self { get; set; }
+        public bool readyStatus { get; set; }
+    }
+
+    class ArcEvent
+    {
+        UInt64 id { get; set; }
+        UInt64 revision { get; set; }
+        public cbtevent ev { get; set; }
+        public ag src { get; set; }
+        public ag dst { get; set; }
+        public string skillname { get; set; }
+    }
+
+    class SquadStatus
+    {
+        public string self { get; set; }
+        public PlayerInfo[] members { get; set; }
+    }
+
     internal class Handler
     {
-        public class cbtevent
-        {
-            public UInt64 time { get; set; }
-            public UInt64 src_agent { get; set; }
-            public UInt64 dst_agent { get; set; }
-            public Int32 value { get; set; }
-            public Int32 buff_dmg { get; set; }
-            public UInt32 overstack_value { get; set; }
-            public UInt32 skillid { get; set; }
-            public UInt16 src_instid { get; set; }
-            public UInt16 dst_instid { get; set; }
-            public UInt16 src_master_instid { get; set; }
-            public UInt16 dst_master_instid { get; set; }
-            public Byte iff { get; set; }
-            public Byte buff { get; set; }
-            public Byte result { get; set; }
-            public Byte is_activation { get; set; }
-            public Byte is_buffremove { get; set; }
-            public Byte is_ninety { get; set; }
-            public Byte is_fifty { get; set; }
-            public Byte is_moving { get; set; }
-            public Byte is_statechange { get; set; }
-            public Byte is_flanking { get; set; }
-            public Byte is_shields { get; set; }
-            public Byte is_offcycle { get; set; }
-        }
-
-        public class ag
-        {
-            public string name { get; set; }
-            public UInt64 id { get; set; }
-            public UInt32 prof { get; set; }
-            public UInt32 elite { get; set; }
-            public UInt32 self { get; set; }
-            public UInt16 team { get; set; }
-        }
-
-        public class PlayerInfo
-        {
-            public string accountName { get; set; }
-            public string characterName { get; set; }
-            public UInt32 profession { get; set; }
-            public UInt32 elite { get; set; }
-            public Byte role { get; set; }
-            public Byte subgroup { get; set; }
-            public bool inInstance { get; set; }
-        }
-
-        public class ArcEvent
-        {
-            UInt64 id { get; set; }
-            UInt64 revision { get; set; }
-            public cbtevent ev { get; set; }
-            public ag src { get; set; }
-            public ag dst { get; set; }
-            public string skillname { get; set; }
-        }
-
-        public class SquadStatus
-        {
-            public string self { get; set; }
-            public PlayerInfo[] members { get; set; }
-        }
-
-        private class StatusEvent
-        {
-            public bool success { get; set; }
-            public string error { get; set; }
-        }
-
-        public class BridgeInfo
+        private class BridgeInfo
         {
             public string version { get; set; }
             public string extrasVersion { get; set; }
             public string arcVersion { get; set; }
             public bool arcLoaded { get; set; }
+            public bool extrasFound { get; set; }
             public bool extrasLoaded { get; set; }
         }
 
@@ -109,6 +122,12 @@ namespace BridgeHandler
             public SquadPlayerEvent update { get; set; }
         }
 
+        private class StatusEvent
+        {
+            public bool success { get; set; }
+            public string error { get; set; }
+        }
+
         private class BridgeEvent
         {
             public string type { get; set; }
@@ -117,6 +136,24 @@ namespace BridgeHandler
             public ArcEvent combat { get; set; }
             public PlayerInfo extras { get; set; }
             public SquadData squad { get; set; }
+        }
+
+        private enum MessageType : Byte
+        {
+            NONE = 0,
+            Combat = 1,
+            Extras = 2,
+            Squad = 4
+        }
+
+        private static class EventType
+        {
+            public const string Info = "info";          // Bridge Information.
+            public const string Status = "status";      // Status.
+            public const string Squad = "squad";        // Squad information (initial squad data | player added, updated, or removed).
+            public const string Combat = "combat";      // ArcDPS event.
+            public const string Extras = "extras";      // Unofficial Extras event.
+            public const string Closing = "closing";    // Server is closing the connection.
         }
 
         public static string ReadFromPipe(NamedPipeClientStream stream)
@@ -131,7 +168,7 @@ namespace BridgeHandler
                 messageBuilder.Append(messageChunk);
                 messageBuffer = new byte[messageBuffer.Length];
             }
-            while (!stream.IsMessageComplete);
+            while (stream.IsConnected && !stream.IsMessageComplete);
 
             string data = messageBuilder.ToString();
             data = data.Replace("\0", "");
@@ -144,21 +181,6 @@ namespace BridgeHandler
             stream.Write(messageBytes, 0, messageBytes.Length);
         }
 
-        public class Subscribe
-        {
-            public bool Combat { get; set; }
-            public bool Extras { get; set; }
-            public bool Squad { get; set; }
-        }
-
-        private enum MessageType : Byte
-        {
-            NONE = 0,
-            Combat = 1,
-            Extras = 2,
-            Squad = 4
-        }
-
         public delegate void SquadInfo(SquadStatus squad);
         public delegate void PlayerChange(PlayerInfo player);
         public delegate void ArcMessage(ArcEvent evt);
@@ -169,9 +191,11 @@ namespace BridgeHandler
         public event PlayerChange OnPlayerUpdateEvent;
         public event PlayerChange OnPlayerRemovedEvent;
 
-        // Connection event.
+        // Connection events.
         public delegate void ConntectedHandler(bool connected);
+        public delegate void ConntectionInfoHandler(ConnectionInfo info);
         public event ConntectedHandler OnConnectionUpdate;
+        public event ConntectionInfoHandler OnConnectionInfo;
 
         // ArcDPS event.
         public event ArcMessage OnArcEvent;
@@ -194,10 +218,14 @@ namespace BridgeHandler
         public void Start(Subscribe subscribe)
         {
             _t = new Thread(PipeThreadMain);
-            _tData = new ThreadData();
-            _tData.Handle = this;
-
-            _tData.EnabledTypes = (Byte)MessageType.NONE;
+            _tData = new ThreadData()
+            {
+                Handle = this,
+                EnabledTypes = (Byte)MessageType.NONE,
+                Run = true,
+                Connected = false
+            };
+            
             if (subscribe.Combat)
                 _tData.EnabledTypes |= (Byte)MessageType.Combat;
             if (subscribe.Extras)
@@ -205,8 +233,6 @@ namespace BridgeHandler
             if (subscribe.Squad)
                 _tData.EnabledTypes |= (Byte)MessageType.Squad;
 
-            _tData.Run = true;
-            _tData.Connected = false;
             _t.Start(_tData);
         }
 
@@ -237,7 +263,7 @@ namespace BridgeHandler
             ThreadData tData = (ThreadData)parameterData;
             while (tData.Run)
             {
-                tData.ClientStream = new NamedPipeClientStream(".", "arcdps-bridge", PipeDirection.InOut, PipeOptions.None, TokenImpersonationLevel.Impersonation);
+                tData.ClientStream = new NamedPipeClientStream(".", "arcdps-bridge", PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Impersonation);
                 if (tData.ClientStream == null)
                     continue;
 
@@ -257,16 +283,7 @@ namespace BridgeHandler
                 // Read BridgeInfo.
                 String infoData = ReadFromPipe(tData.ClientStream);
                 BridgeEvent bEvent = JsonSerializer.Deserialize<BridgeEvent>(infoData)!;
-                BridgeInfo bInfo = bEvent.info;
-                if (!bInfo.arcLoaded && !bInfo.extrasLoaded)
-                {
-                    // Both ArcDPS and Unofficial Extras is needed for squad events.
-                    tData.Run = false;
-                    tData.ClientStream.Close();
-                    tData.ClientStream = null;
-                    tData.Connected = false;
-                    continue; // Thread will close after this.
-                }
+                tData.Handle.HandleBridgeInfo(bEvent.info, tData);
 
                 // Send subscribe data to server.
                 Byte subscribe = tData.EnabledTypes; // id for squad messages.
@@ -296,14 +313,26 @@ namespace BridgeHandler
                     if (data != "")
                     {
                         bEvent = JsonSerializer.Deserialize<BridgeEvent>(data)!;
-                        tData.Handle.HandleBrideEvent(bEvent, tData);
+
+                        if (bEvent.type == EventType.Closing)
+                        {
+                            // Server closing the connection, no more events will be sent.
+                            tData.Run = false;
+                            break;
+                        }
+                        else
+                        {
+                            tData.Handle.HandleBrideEvent(bEvent, tData);
+                        }
                     }
                 }
 
                 // Stream is not connected here, or tData.Run is false.
-                tData.ClientStream.Close();
+                if (tData.ClientStream != null)
+                    tData.ClientStream.Close();
                 tData.ClientStream = null;
                 tData.Connected = false;
+
                 // Bridge disconnected here, invoke callback.
                 tData.Handle.OnConnectionUpdate?.Invoke(false);
             }
@@ -318,18 +347,10 @@ namespace BridgeHandler
                 tData.Handle.OnConnectionUpdate?.Invoke(false);
             }
         }
-        private static class EventType
-        {
-            public const string Info = "info";      // Bridge Information.
-            public const string Status = "status";      // Status.
-            public const string Squad = "squad";    // Squad information (initial squad data | player added, updated, or removed).
-            public const string Combat = "combat";  // ArcDPS event.
-            public const string Extras = "extras";    // Unofficial Extras event.
-        }
 
         private void HandleBrideEvent(BridgeEvent evt, ThreadData tData)
         {
-            // "info" and "status" will never be handled here.
+            // "status" will never be handled here.
 
             if (evt.type == EventType.Squad && evt.squad != null)
             {
@@ -343,6 +364,23 @@ namespace BridgeHandler
             {
                 tData.Handle.OnExtrasEvent?.Invoke(evt.extras);
             }
+            else if (evt.type == EventType.Info && evt.info != null)
+            {
+                HandleBridgeInfo(evt.info, tData);
+            }
+        }
+
+        private void HandleBridgeInfo(BridgeInfo bInfo, ThreadData tData)
+        {
+            // Connection info received here, invoke callback.
+            ConnectionInfo info = new ConnectionInfo()
+            {
+                CombatEnabled = bInfo.arcLoaded,
+                ExtrasEnabled = bInfo.extrasLoaded,
+                ExtrasFound = bInfo.extrasFound,
+                SquadEnabled = bInfo.arcLoaded && bInfo.extrasLoaded
+            };
+            tData.Handle.OnConnectionInfo?.Invoke(info);
         }
 
         private static class SquadTriggers

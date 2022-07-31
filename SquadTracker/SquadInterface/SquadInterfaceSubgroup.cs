@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System.Collections.Generic;
 using System.Linq;
+using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker.SquadInterface
 {
@@ -21,7 +22,9 @@ namespace Torlando.SquadTracker.SquadInterface
         public ContentService.FontSize FontSize { get; set; } = ContentService.FontSize.Size18;
         private BitmapFont _font;
 
-        public SquadInterfaceSubgroup(uint subgroupNumber, Color bgColor, Color hoverColor)
+        private readonly ICollection<Role> _roles;
+
+        public SquadInterfaceSubgroup(uint subgroupNumber, Color bgColor, Color hoverColor, ICollection<Role> roles)
         {
             this.Visible = true;
             this.Size = new Point(1, 1);
@@ -29,6 +32,7 @@ namespace Torlando.SquadTracker.SquadInterface
             this.Number = subgroupNumber;
             ForegroundColor = bgColor;
             _hoverColor = hoverColor;
+            _roles = roles;
         }
 
         private static int Compare(SquadInterfaceTile t1, SquadInterfaceTile t2)

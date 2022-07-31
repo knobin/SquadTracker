@@ -49,12 +49,12 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadManager.PlayerUpdateSquad += UpdatePlayer;
             _squadManager.ClearSquad += ClearPlayers;
 
-            _squadManager.BridgeConnected += OnBridgeConnection;
-            _squadManager.BridgeDisconnected += OnBridgeDisconnection;
+            _squadManager.BridgeError += OnBridgeError;
+            _squadManager.BridgeConnected += OnBridgeConnected;
 
             if (!_squadManager.IsBridgeConnected())
             {
-                OnBridgeDisconnection();
+                OnBridgeError(_squadManager.LastBridgeError());
             }
         }
 
@@ -67,18 +67,18 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadManager.PlayerUpdateSquad -= UpdatePlayer;
             _squadManager.ClearSquad -= ClearPlayers;
 
-            _squadManager.BridgeConnected -= OnBridgeConnection;
-            _squadManager.BridgeDisconnected -= OnBridgeDisconnection;
+            _squadManager.BridgeConnected -= OnBridgeConnected;
+            _squadManager.BridgeError -= OnBridgeError;
         }
 
-        private void OnBridgeConnection()
+        private void OnBridgeConnected()
         {
             View.HideErrorMessage();
         }
 
-        private void OnBridgeDisconnection()
+        private void OnBridgeError(string message)
         {
-            View.ShowErrorMessage(Constants.Placeholder.BridgeHandlerErrorMessage);
+            View.ShowErrorMessage(message);
         }
 
         private void ClearPlayers()

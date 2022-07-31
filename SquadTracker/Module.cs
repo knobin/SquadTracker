@@ -81,40 +81,31 @@ namespace Torlando.SquadTracker
                 new Point(100, 100), () => "SquadInterface Location.",
                 () => ""
             );
-            SquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
             SquadInterfaceSize = settings.DefineSetting(
                 "SquadInterfaceSize",
                 new Point(100, 250), () => "SquadInterface Size.",
                 () => ""
             );
-            SquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
-
             PlayerWithRoleLeaveNotification = settings.DefineSetting(
                 "PlayerWithRoleLeaveNotification",
                 false, () => "Enable Notifications for when Player with Role Leaves",
                 () => "Enable notifications for when a players with a role leaves the squad."
             );
-
             KeepPlayerRolesWhenRejoining = settings.DefineSetting(
                 "KeepPlayerRolesWhenRejoining",
                 false, () => "Keep Assigned Roles when Player Rejoins the Squad",
                 () => "Keep the assigned roles after the player left and then later join the squad."
             );
-
             SquadInterfaceEnable = settings.DefineSetting(
                 "EnableSquadInterface",
                 false, () => "Enable SquadInterface",
                 () => "SquadInterface to be enabled or not."
             );
-            SquadInterfaceEnable.SettingChanged += EnableSquadInterface;
-
             SquadInterfaceMoving = settings.DefineSetting(
                 "EnableSquadInterfaceDrag",
-                false, () => "Enable SquadInterface Moving",
-                () => "SquadInterface can be moved when enabled."
+                false, () => "Enable SquadInterface Dragging",
+                () => "SquadInterface can be moved and dragged around when enabled."
             );
-            SquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
-
             ToggleSquadInterface = settings.DefineSetting(
                 "ToggleSquadInterface",
                 new KeyBinding(ModifierKeys.Shift | ModifierKeys.Ctrl, Keys.P),
@@ -123,14 +114,12 @@ namespace Torlando.SquadTracker
             );
             ToggleSquadInterface.Value.BlockSequenceFromGw2 = true;
             ToggleSquadInterface.Value.Enabled = true;
-            ToggleSquadInterface.Value.Activated += delegate
-            {
-                if (SquadInterfaceEnable.Value)
-                {
-                    _squadInterfaceShouldShow = !_squadInterfaceView.Visible;
-                    _squadInterfaceView.Visible = !_squadInterfaceView.Visible;
-                }
-            };
+
+            SquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
+            SquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
+            SquadInterfaceEnable.SettingChanged += EnableSquadInterface;
+            SquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
+            ToggleSquadInterface.Value.Activated += UpdateToggleSquadInterface;
         }
 
        
@@ -237,6 +226,8 @@ namespace Torlando.SquadTracker
                         }
                     }
                 }
+
+                _squadInterfaceView.OnRoleCollectionUpdate();
             };
 
             _newTab = GameService.Overlay.BlishHudWindow.AddTab(
@@ -250,9 +241,10 @@ namespace Torlando.SquadTracker
             );
 
             _squadManager.SetBridgeConnectionStatus(false);
+            _bridgeHandler.OnConnectionInfo += (info) => _squadManager.BridgeConnectionInfo(info.CombatEnabled, info.ExtrasFound, info.ExtrasEnabled, info.SquadEnabled);
             _bridgeHandler.OnConnectionUpdate += (connected) => _squadManager.SetBridgeConnectionStatus(connected);
 
-            Handler.Subscribe sub = new Handler.Subscribe() { Squad = true };
+            Subscribe sub = new Subscribe() { Squad = true };
             _bridgeHandler.Start(sub);
 
             // Base handler must be called
@@ -279,7 +271,18 @@ namespace Torlando.SquadTracker
         {
             if (_bridgeHandler != null)
                 _bridgeHandler.Stop();
+            if (_squadInterfaceView != null)
+            {
+                _squadInterfaceView.Dispose();
+                _squadInterfaceView = null;
+            }
             GameService.Overlay.BlishHudWindow.RemoveTab(_newTab);
+
+            SquadInterfaceLocation.SettingChanged -= UpdateSquadInterfaceLocation;
+            SquadInterfaceSize.SettingChanged -= UpdateSquadInterfaceSize;
+            SquadInterfaceEnable.SettingChanged -= EnableSquadInterface;
+            SquadInterfaceMoving.SettingChanged -= UpdateSquadInterfaceMoving;
+            ToggleSquadInterface.Value.Activated -= UpdateToggleSquadInterface;
         }
 
         private void UpdateSquadInterfaceLocation(object sender = null, ValueChangedEventArgs<Point> e = null)
@@ -301,6 +304,15 @@ namespace Torlando.SquadTracker
         {
             _squadInterfaceView.Visible = SquadInterfaceEnable.Value;
             _squadInterfaceShouldShow = _squadInterfaceView.Visible;
+        }
+
+        private void UpdateToggleSquadInterface(object sender = null, EventArgs e = null)
+        {
+            if (SquadInterfaceEnable.Value)
+            {
+                _squadInterfaceShouldShow = !_squadInterfaceView.Visible;
+                _squadInterfaceView.Visible = !_squadInterfaceView.Visible;
+            }
         }
     }
 

@@ -39,14 +39,13 @@ namespace Torlando.SquadTracker.SquadInterface
         private bool _dragResizing = false;
         private bool _dragMoving = false;
 
-        public string SelfAccountName { get; set; }
         private readonly ICollection<Role> _roles;
 
         private readonly Color _bgColor = new Color(0, 0, 0, 25);
         private readonly Color _hoverColor = new Color(5, 5, 5, 175);
         private readonly Color _subgroupHoverColor = new Color(0, 0, 0, 100);
-        private readonly Color _subgroupColor1 = new Color(16, 16, 16, 90);
-        private readonly Color _subgroupColor2 = new Color(20, 20, 20, 90);
+        private readonly Color _subgroupColor1 = new Color(20, 20, 20, 50);
+        private readonly Color _subgroupColor2 = new Color(30, 30, 30, 50);
         private Color _activeBackgroundColor;
 
         private readonly AsyncTexture2D _tileLoadedTexture;
@@ -107,6 +106,15 @@ namespace Torlando.SquadTracker.SquadInterface
         {
             _errorMessage.Visible = false;
             _errorMessage.Text = "";
+        }
+
+        public void OnRoleCollectionUpdate()
+        {
+            List<SquadInterfaceTile> tiles = _tiles.ToList();
+            for (int i = 0; i < tiles.Count; i++)
+            {
+                tiles[i].UpdateContextMenu();
+            }
         }
 
         public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)
@@ -276,11 +284,11 @@ namespace Torlando.SquadTracker.SquadInterface
             if (subgroup == null)
             {
                 Color color = (player.Subgroup % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
-                subgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor) { Parent = this };
+                subgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor, _roles) { Parent = this };
                 _subgroups.Add(subgroup);
             }
 
-            SquadInterfaceTile tile = new SquadInterfaceTile(player, player.AccountName == SelfAccountName, _tileLoadedTexture, _tileTextThreshold, _roles)
+            SquadInterfaceTile tile = new SquadInterfaceTile(player, player.IsSelf, _tileLoadedTexture, _tileTextThreshold, _roles)
             {
                 Icon = icon,
                 Parent = subgroup
@@ -328,7 +336,7 @@ namespace Torlando.SquadTracker.SquadInterface
                         if (newSubgroup == null)
                         {
                             Color color = (player.Subgroup % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
-                            newSubgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor) { Parent = this };
+                            newSubgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor, _roles) { Parent = this };
                             _subgroups.Add(newSubgroup);
                         }
 
@@ -420,7 +428,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
             int textWidth = (int)(_tileSpacing * 10);
             int xpadding = (int)(_tileSpacing * 2);
-            int ypadding = (int)(_tileSpacing * 2);
+            int ypadding = (int)(_tileSpacing);
 
             for (int i = 0; i < subgroups.Count; i++)
             {

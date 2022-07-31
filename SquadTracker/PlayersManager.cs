@@ -22,14 +22,12 @@ namespace Torlando.SquadTracker
         public event PlayerLeftInstanceHandler PlayerLeftInstance;
         public event PlayerUpdatedHandler PlayerUpdated;
         public event CharacterChangedSpecializationHandler CharacterChangedSpecialization;
-        public event SelfUpdatedHandler SelfUpdated;
         public event ClearPlayers PlayerClear;
 
         private readonly IDictionary<string, Player> _players = new Dictionary<string, Player>();
         private readonly IDictionary<string, Character> _characters = new Dictionary<string, Character>();
 
         private Handler _bridgeHandler;
-        private string _self = "";
 
         private static readonly Logger Logger = Logger.GetLogger<Module>();
 
@@ -48,16 +46,17 @@ namespace Torlando.SquadTracker
             return _players.Values.ToList(); // Return a clone.
         }
 
-        private void OnSquadInfo(Handler.SquadStatus squad)
+        private void OnSquadInfo(SquadStatus squad)
         {
-            _self = squad.self;
-            this.SelfUpdated?.Invoke(_self);
+            // Would be nice to batch all the members here to add them all at once
+            // instead of one at a time.
+            // Will also fixed the UI to not sort after every player addition.
 
-            foreach (Handler.PlayerInfo pi in squad.members)
+            foreach (PlayerInfo pi in squad.members)
                 OnPlayerAdd(pi);
         }
 
-        private void OnPlayerAdd(Handler.PlayerInfo playerInfo)
+        private void OnPlayerAdd(PlayerInfo playerInfo)
         {
             Character character = null;
 
@@ -93,7 +92,7 @@ namespace Torlando.SquadTracker
                 {
                     IsInInstance = playerInfo.inInstance,
                     Role = playerInfo.role,
-                    IsSelf = (playerInfo.accountName == _self)
+                    IsSelf = playerInfo.self
                 };
                 player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
                 _players.Add(player.AccountName, player);
@@ -143,12 +142,12 @@ namespace Torlando.SquadTracker
             _players.Remove(player.AccountName);
         }
 
-        private void OnPlayerRemove(Handler.PlayerInfo playerInfo)
+        private void OnPlayerRemove(PlayerInfo playerInfo)
         {
             Logger.Info("Removing {}", playerInfo.accountName);
-            if (_self == playerInfo.accountName)
+            if (playerInfo.self)
             {
-                Logger.Info("Removing self! {}", playerInfo.accountName);
+                Logger.Info("Removing self! {}. Clearing squad...", playerInfo.accountName);
                 this.PlayerClear?.Invoke();
                 _players.Clear();
             }
@@ -163,7 +162,7 @@ namespace Torlando.SquadTracker
             }
         }
 
-        private void OnPlayerUpdate(Handler.PlayerInfo playerInfo)
+        private void OnPlayerUpdate(PlayerInfo playerInfo)
         {
             Logger.Info("Update {} : {}, inInstance {}", playerInfo.accountName, (playerInfo.characterName != null) ? playerInfo.characterName : "", playerInfo.inInstance);
             if (playerInfo.characterName != null)

@@ -151,6 +151,12 @@ namespace Torlando.SquadTracker.SquadInterface
                 PaintBorder(spriteBatch, bounds, BorderColor);
         }
 
+        public void UpdateContextMenu()
+        {
+            Menu.Dispose();
+            Menu = null;
+        }
+
         private void PaintBorder(SpriteBatch spriteBatch, Rectangle bounds, Color color)
         {
             Rectangle rect = new Rectangle(Point.Zero, Point.Zero);
@@ -216,11 +222,15 @@ namespace Torlando.SquadTracker.SquadInterface
 
             text += " (";
             if (Player.Role == 0)
-                text += "SquadLeader";
+                text += "Squad Leader";
             else if (Player.Role == 1)
                 text += "Lieutenant";
             else if (Player.Role == 2)
                 text += "Member";
+            else if (Player.Role == 3)
+                text += "Invited";
+            else if (Player.Role == 4)
+                text += "Applied";
             else
                 text += "none";
             text += ")";
@@ -256,16 +266,24 @@ namespace Torlando.SquadTracker.SquadInterface
             }
         }
 
-        private ContextMenuStrip _menu = null;
         protected override void OnRightMouseButtonPressed(MouseEventArgs e)
         {
-            if (_menu != null)
-                _menu.Dispose();
+            if (Menu == null)
+            {
+                Menu = CreateMenu();
+            }
+            else
+            {
+                Menu.Show(e.MousePosition);
+            }
+        }
 
-            _menu = new ContextMenuStrip();
+        private ContextMenuStrip CreateMenu()
+        {
+            ContextMenuStrip menu = new ContextMenuStrip();
 
             string name = (Player.CurrentCharacter != null) ? Player.CurrentCharacter.Name : Player.AccountName;
-            List <ContextMenuStripItem> items = new List<ContextMenuStripItem>()
+            List<ContextMenuStripItem> items = new List<ContextMenuStripItem>()
             {
                 new ContextMenuStripItem(name)
             };
@@ -285,10 +303,10 @@ namespace Torlando.SquadTracker.SquadInterface
                 items.Add(item);
             }
 
-            _menu.AddMenuItems(items);
-            _menu.Show(Input.Mouse.Position);
+            menu.AddMenuItems(items);
+            menu.Show(Input.Mouse.Position);
 
-            base.OnRightMouseButtonPressed(e);
+            return menu;
         }
     }
 }

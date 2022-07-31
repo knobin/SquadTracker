@@ -8,7 +8,8 @@ namespace Torlando.SquadTracker.SquadPanel
         public delegate void PlayerJoinedSquadHandler(Player player, bool isReturning);
         public delegate void PlayerUpdateSquadHandler(Player player);
         public delegate void PlayerLeftSquadHandler(string accountName);
-        public delegate void BridgeConntectionHandler();
+        public delegate void BridgeErrorHandler(string message);
+        public delegate void BridgeHandler();
         public delegate void ClearSquadHandler();
 
         public event PlayerJoinedSquadHandler PlayerJoinedSquad;
@@ -16,8 +17,8 @@ namespace Torlando.SquadTracker.SquadPanel
         public event PlayerUpdateSquadHandler PlayerUpdateSquad;
         public event ClearSquadHandler ClearSquad;
 
-        public event BridgeConntectionHandler BridgeConnected;
-        public event BridgeConntectionHandler BridgeDisconnected;
+        public event BridgeErrorHandler BridgeError;
+        public event BridgeHandler BridgeConnected;
 
         private readonly PlayersManager _playersManager;
 
@@ -25,6 +26,7 @@ namespace Torlando.SquadTracker.SquadPanel
         private readonly SquadInterfaceView _squadInterfaceView;
 
         private bool _bridgeConnected = false;
+        private string _bridgeError = Constants.Placeholder.BridgeHandlerErrorMessage;
 
         public SquadManager(PlayersManager playersManager, SquadInterfaceView squadInterfaceView)
         {
@@ -42,13 +44,58 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.PlayerJoinedInstance += OnPlayerJoinedInstance;
             _playersManager.PlayerLeftInstance += OnPlayerLeftInstance;
             _playersManager.PlayerUpdated += OnPlayerUpdate;
-            _playersManager.SelfUpdated += OnSelfUpdate;
             _playersManager.PlayerClear += OnPlayerClear;
+
+            OnBridgeError(Constants.Placeholder.BridgeHandlerErrorMessage);
         }
 
         public bool IsBridgeConnected()
         {
             return _bridgeConnected;
+        }
+
+        public string LastBridgeError()
+        {
+            return _bridgeError;
+        }
+
+        public void OnBridgeError(string message)
+        {
+            _bridgeError = message;
+            _squadInterfaceView.ShowErrorMessage(message);
+            BridgeError?.Invoke(message);
+        }
+
+        public void BridgeConnectionInfo(bool combatEnabled, bool extrasFound, bool extrasEnabled, bool squadEnabled)
+        {
+            // Getting this function call means that arcdps_bridge has loaded.
+            // Both combat and extras can be disabled in the arcdps_bridge config file.
+            // For SquadTracker we need both to be loaded.
+
+            if (!squadEnabled) // squad == combatEnabled && extrasEnabled.
+            {
+                string message = "";
+
+                if (!combatEnabled)
+                {
+                    message += Constants.Placeholder.BridgeHandlerCombatDisabledErrorMessage;
+                    message += ((!extrasFound) || (!extrasEnabled)) ? "\n\n" : "";
+                }
+
+                if (!extrasFound)
+                {
+                    message += Constants.Placeholder.BridgeHandlerExtrasErrorMessage;
+                }
+                else if (!extrasEnabled)
+                {
+                    message += Constants.Placeholder.BridgeHandlerExtrasDisabledErrorMessage;
+                }
+
+                if (message.Length > 0)
+                {
+                    OnBridgeError(message);    
+                }
+            }
         }
 
         public void SetBridgeConnectionStatus(bool connected)
@@ -62,9 +109,8 @@ namespace Torlando.SquadTracker.SquadPanel
             }
             else
             {
-                _squadInterfaceView.ShowErrorMessage(Constants.Placeholder.BridgeHandlerErrorMessage);
-                BridgeDisconnected?.Invoke();
-            } 
+                OnBridgeError(Constants.Placeholder.BridgeHandlerDisconnectMessage);
+            }
         }
 
         public Squad GetSquad()
@@ -79,11 +125,6 @@ namespace Torlando.SquadTracker.SquadPanel
 
             _squadInterfaceView.Clear();
             ClearSquad?.Invoke();
-        }
-
-        private void OnSelfUpdate(string accountName)
-        {
-            _squadInterfaceView.SelfAccountName = accountName;
         }
 
         private void OnPlayerJoinedInstance(Player newPlayer)
