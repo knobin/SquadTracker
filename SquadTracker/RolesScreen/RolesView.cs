@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Microsoft.Xna.Framework;
 
 namespace Torlando.SquadTracker.RolesScreen
 {
-    class RolesView : View<RolesPresenter>
+    internal class RolesView : View<RolesPresenter>
     {
         #region Controls
 
@@ -15,6 +16,7 @@ namespace Torlando.SquadTracker.RolesScreen
         private StandardButton _addRoleButton;
         private Label _addRoleErrorLabel;
         private readonly IDictionary<string, DetailsButton> _roleDisplays = new Dictionary<string, DetailsButton>();
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
 
         #endregion
 
@@ -66,6 +68,36 @@ namespace Torlando.SquadTracker.RolesScreen
             // Events
             _newRoleTextBox.EnterPressed += (o, e) => this.Presenter.CreateRole(_newRoleTextBox.Text);
             _addRoleButton.Click += (o, e) => this.Presenter.CreateRole(_newRoleTextBox.Text);
+        }
+
+        protected override void Unload()
+        {
+            Logger.Info("Unloading RolesView");
+
+            _mainPanel.Parent = null;
+            _mainPanel.Dispose();
+
+            _rolesFlowPanel.Parent = null;
+            _rolesFlowPanel.Dispose();
+
+            _newRoleTextBox.Parent = null;
+            _newRoleTextBox.Dispose();
+
+            _addRoleButton.Parent = null;
+            _addRoleButton.Dispose();
+
+            _addRoleErrorLabel.Parent = null;
+            _addRoleErrorLabel.Dispose();
+
+            var keys = new List<string>(_roleDisplays.Keys);
+            foreach (var key in keys)
+            {
+                _roleDisplays[key].Parent = null;
+                _roleDisplays[key].Dispose();
+                _roleDisplays[key] = null;
+            }
+
+            _roleDisplays.Clear();
         }
 
         public void AddRoleDisplay(Role role)

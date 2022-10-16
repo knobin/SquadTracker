@@ -9,7 +9,7 @@ using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker
 {
-    class PlayersManager
+    internal class PlayersManager  : IDisposable
     {
         public delegate void PlayerJoinedInstanceHandler(Player newPlayer);
         public delegate void PlayerLeftInstanceHandler(string accountName);
@@ -41,6 +41,22 @@ namespace Torlando.SquadTracker
             _bridgeHandler.OnPlayerUpdateEvent += OnPlayerUpdate;
         }
 
+        public void Dispose()
+        {
+            _characters.Clear();
+            _players.Clear();
+            
+            if (_bridgeHandler == null)
+                return;
+            
+            _bridgeHandler.OnSquadStatusEvent -= OnSquadInfo;
+            _bridgeHandler.OnPlayerAddedEvent -= OnPlayerAdd;
+            _bridgeHandler.OnPlayerRemovedEvent -= OnPlayerRemove;
+            _bridgeHandler.OnPlayerUpdateEvent -= OnPlayerUpdate;
+
+            _bridgeHandler = null;
+        }
+
         public IReadOnlyCollection<Player> GetPlayers()
         {
             return _players.Values.ToList(); // Return a clone.
@@ -52,15 +68,17 @@ namespace Torlando.SquadTracker
             // instead of one at a time.
             // Will also fixed the UI to not sort after every player addition.
 
-            foreach (PlayerInfo pi in squad.members)
-                OnPlayerAdd(pi);
+            foreach (var entry in squad.members)
+                OnPlayerAdd(entry);
         }
 
-        private void OnPlayerAdd(PlayerInfo playerInfo)
+        private void OnPlayerAdd(PlayerInfoEntry entry)
         {
             Character character = null;
+            var playerInfo = entry.player;
+            playerInfo.accountName = playerInfo.accountName.TrimStart(':');
 
-            if (playerInfo.characterName != null && playerInfo.characterName != "")
+            if (!String.IsNullOrEmpty(playerInfo.characterName))
             {
                 if (_characters.TryGetValue(playerInfo.characterName, out var ch))
                 {
@@ -79,7 +97,7 @@ namespace Torlando.SquadTracker
             if (_players.TryGetValue(playerInfo.accountName, out var player))
             {
                 Logger.Info("Assigning Character: \"{}\" : to user \"{}\"", (character != null) ? character.Name : "", playerInfo.accountName);
-                player.CurrentCharacter = character; // Assigns the character to known charactes for player.
+                player.CurrentCharacter = character; // Assigns the character to known characters for player.
                 player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
                 player.IsInInstance = playerInfo.inInstance;
                 player.Subgroup = (uint)playerInfo.subgroup;
@@ -101,49 +119,51 @@ namespace Torlando.SquadTracker
             this.PlayerJoinedInstance?.Invoke(player);
         }
 
-        private void PlayerLeftNotification(Player player)
+        private static void PlayerLeftNotification(Player player)
         {
-            if (Module.PlayerWithRoleLeaveNotification.Value)
+            if (!Module.PlayerWithRoleLeaveNotification.Value)
+                return;
+
+            if (!(player.Roles.Count > 0))
+                return;
+            
+            var name = (player.CurrentCharacter != null) ? player.CurrentCharacter.Name + " (" + player.AccountName + ")" : player.AccountName;
+            var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
+            var roleStr = String.Join(", ", roles.Select(x => x.Name).ToArray());
+            var role = (roles.Count > 1) ? "roles" : "role";
+            var str = name + " from subgroup " + player.Subgroup.ToString() + " with " + role + " '" + roleStr + "' left the squad.";
+
+            const int lineBreak = 70;
+            var index = 0;
+
+            while (index != -1 && (index + lineBreak) < str.Length)
             {
-                if (player.Roles.Count > 0)
-                {
-                    string name = (player.CurrentCharacter != null) ? player.CurrentCharacter.Name + " (" + player.AccountName + ")" : player.AccountName;
-                    List<Role> roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
-                    string roleStr = String.Join(", ", roles.Select(x => x.Name).ToArray());
-                    string role = (roles.Count > 1) ? "roles" : "role";
-                    string str = name + " from subgroup " + player.Subgroup.ToString() + " with " + role + " '" + roleStr + "' left the squad.";
+                var start = (((index + lineBreak) > str.Length) ? str.Length : index + lineBreak) - 1;
+                var count = start - index + 1;
+                index = str.LastIndexOf(' ', start, count);
 
-                    const int lineBreak = 70;
-                    int index = 0;
-
-                    while (index != -1 && (index + lineBreak) < str.Length)
-                    {
-                        int start = (((index + lineBreak) > str.Length) ? str.Length : index + lineBreak) - 1;
-                        int count = start - index + 1;
-                        index = str.LastIndexOf(' ', start, count);
-
-                        if (index != -1)
-                        {
-                            StringBuilder sb = new StringBuilder(str);
-                            sb[index] = '\n';
-                            str = sb.ToString();
-                        }
-                    }
-
-                    ScreenNotification.ShowNotification(str, ScreenNotification.NotificationType.Info, null, 6);
-                }
+                if (index == -1) continue;
+                
+                var sb = new StringBuilder(str);
+                sb[index] = '\n';
+                str = sb.ToString();
             }
+
+            ScreenNotification.ShowNotification(str, ScreenNotification.NotificationType.Info, null, 6);
         }
 
         public void RemovePlayer(Player player)
         {
-            foreach (Character ch in player.KnownCharacters)
+            foreach (var ch in player.KnownCharacters)
                 _characters.Remove(ch.Name);
             _players.Remove(player.AccountName);
         }
 
-        private void OnPlayerRemove(PlayerInfo playerInfo)
+        private void OnPlayerRemove(PlayerInfoEntry entry)
         {
+            var playerInfo = entry.player;
+            playerInfo.accountName = playerInfo.accountName.TrimStart(':');
+            
             Logger.Info("Removing {}", playerInfo.accountName);
             if (playerInfo.self)
             {
@@ -159,11 +179,15 @@ namespace Torlando.SquadTracker
                 this.PlayerLeftInstance?.Invoke(player.AccountName);
 
                 PlayerLeftNotification(player);
+                // RemovePlayer(player);
             }
         }
 
-        private void OnPlayerUpdate(PlayerInfo playerInfo)
+        private void OnPlayerUpdate(PlayerInfoEntry entry)
         {
+            var playerInfo = entry.player;
+            playerInfo.accountName = playerInfo.accountName.TrimStart(':');
+            
             Logger.Info("Update {} : {}, inInstance {}", playerInfo.accountName, (playerInfo.characterName != null) ? playerInfo.characterName : "", playerInfo.inInstance);
             if (playerInfo.characterName != null)
             {
@@ -186,13 +210,13 @@ namespace Torlando.SquadTracker
                 else
                 {
                     Logger.Info("Creating Character: {}", playerInfo.characterName);
-                    Character character = new Character(playerInfo.characterName, playerInfo.profession, playerInfo.elite);
+                    var character = new Character(playerInfo.characterName, playerInfo.profession, playerInfo.elite);
                     _characters.Add(character.Name, character);
                     
                     if (_players.TryGetValue(playerInfo.accountName, out var player))
                     {
                         Logger.Info("Assigning Character: {} : to user {}", playerInfo.characterName, playerInfo.accountName);
-                        player.CurrentCharacter = character; // Assigns the character to known charactes for player.
+                        player.CurrentCharacter = character; // Assigns the character to known characters for player.
                         player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
                         player.IsInInstance = playerInfo.inInstance;
                         player.Subgroup = playerInfo.subgroup;

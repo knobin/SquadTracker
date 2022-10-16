@@ -16,11 +16,11 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private bool _isMouseOver = false;
         public Color ForegroundColor { get; set; }
-        private Color _hoverColor;
+        private readonly Color _hoverColor;
         private Rectangle _numberTextRect = new Rectangle();
-
-        public ContentService.FontSize FontSize { get; set; } = ContentService.FontSize.Size18;
+        
         private BitmapFont _font;
+        private readonly ContentService.FontSize _fontSize = ContentService.FontSize.Size18;
 
         private readonly ICollection<Role> _roles;
 
@@ -33,6 +33,8 @@ namespace Torlando.SquadTracker.SquadInterface
             ForegroundColor = bgColor;
             _hoverColor = hoverColor;
             _roles = roles;
+            
+            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, _fontSize, ContentService.FontStyle.Regular);
         }
 
         private static int Compare(SquadInterfaceTile t1, SquadInterfaceTile t2)
@@ -41,21 +43,17 @@ namespace Torlando.SquadTracker.SquadInterface
         }
 
         public void UpdateTileSizes(int width, int textWidth, int ypadding, Point tileSize, uint rowCount, uint tileSpacing)
-        {
-            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, FontSize, ContentService.FontStyle.Regular);
-            
+        {   
             var numberTextSize = _font.MeasureString(Number.ToString());
             _numberTextRect.Width = (int)numberTextSize.Width;
             _numberTextRect.Height = (int)numberTextSize.Height;
             _numberTextRect.X = (textWidth - _numberTextRect.Width) / 2;
 
-            Point start = new Point(textWidth, ypadding);
-
-            List<SquadInterfaceTile> tiles = _children.OfType<SquadInterfaceTile>().ToList();
+            var tiles = _children.OfType<SquadInterfaceTile>().ToList();
             tiles.Sort(Compare);
 
-            Point point = new Point(start.X, start.Y);
-            Point size = new Point(width, 0);
+            var point = new Point(textWidth, ypadding);
+            var size = new Point(width, 0);
             int currentRowCount = 1;
 
             for (int i = 0; i < tiles.Count; i++)
@@ -69,7 +67,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
                 if (++currentRowCount > rowCount)
                 {
-                    point.X = start.X;
+                    point.X = textWidth;
                     point.Y += tileSize.Y + (int)tileSpacing;
                     currentRowCount = 1;
                 }
@@ -82,7 +80,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
         public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)
         {
-            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, FontSize, ContentService.FontStyle.Regular);
+            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, _fontSize, ContentService.FontStyle.Regular);
 
             if (_isMouseOver)
                 spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(Point.Zero, Size), _hoverColor);

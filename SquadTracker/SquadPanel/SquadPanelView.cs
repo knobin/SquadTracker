@@ -18,12 +18,14 @@ namespace Torlando.SquadTracker.SquadPanel
         private PlayerDisplayPanel _formerSquadMembersPanel;
         private Label _bridgeNotConnected;
         private StandardButton _clearFormerSquadButton;
-        private Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
+        private readonly Dictionary<string, PlayerDisplay> _playerDisplays = new Dictionary<string, PlayerDisplay>();
         private readonly IEnumerable<Role> _roles;
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
+
+        public delegate void RoleRemovedHandler(string accountName, Role role);
+        public event RoleRemovedHandler OnRoleRemoved;
 
         #endregion
-
-        private static readonly Logger Logger = Logger.GetLogger<Module>();
 
         public SquadPanelView(ICollection<Role> roles)
         {
@@ -32,6 +34,8 @@ namespace Torlando.SquadTracker.SquadPanel
 
         protected override void Build(Container buildPanel)
         {
+            Logger.Info("SquadPanelView Building");
+            
             _squadMembersPanel = new PlayerDisplayPanel()
             {
                 Parent = buildPanel,
@@ -65,12 +69,32 @@ namespace Torlando.SquadTracker.SquadPanel
             };
         }
 
+        protected override void Unload()
+        {
+            Logger.Info("Unloading SquadPanelView");
+            Clear();
+
+            _squadMembersPanel.Clear();
+            _squadMembersPanel.Parent = null;
+            _squadMembersPanel.Dispose();
+
+            _formerSquadMembersPanel.Clear();
+            _formerSquadMembersPanel.Parent = null;
+            _formerSquadMembersPanel.Dispose();
+
+            _clearFormerSquadButton.Parent = null;
+            _clearFormerSquadButton.Dispose();
+            
+            _bridgeNotConnected.Parent = null;
+            _bridgeNotConnected.Dispose();
+        }
+
         public void ShowErrorMessage(string message)
         {
             _bridgeNotConnected.Text = message;
             var strSize = _bridgeNotConnected.Font.MeasureString(_bridgeNotConnected.Text);
-            int strWidth = (int)strSize.Width + 10;
-            int strHeight = (int)strSize.Height + 10;
+            var strWidth = (int)strSize.Width + 10;
+            var strHeight = (int)strSize.Height + 10;
             _bridgeNotConnected.Size = new Point(strWidth, strHeight);
 
             _bridgeNotConnected.Visible = true;
@@ -91,17 +115,24 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private static int Compare(PlayerDisplay pd1, PlayerDisplay pd2)
         {
-            Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
-            SquadPlayerSort.PlayerSortInfo p1 = new SquadPlayerSort.PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
-            Character c2 = (pd2.CharacterName != "") ? new Character(pd2.CharacterName, pd2.Profession, pd2.Specialization) : null;
-            SquadPlayerSort.PlayerSortInfo p2 = new SquadPlayerSort.PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
-            return SquadPlayerSort.Compare(p1, p2);
+            return SquadPlayerSort.Compare(pd1, pd2);
+        }
+        
+        public bool Exists(string accountName)
+        {
+            return _playerDisplays.ContainsKey(accountName);
         }
 
-        private void Sort()
+        public void Sort()
         {
             if (_squadMembersPanel.Visible)
                 _squadMembersPanel.SortChildren<PlayerDisplay>(Compare);
+        }
+        
+        public void PlayerDisplayVisible(string accountName, bool visible)
+        {
+            if (!_playerDisplays.TryGetValue(accountName, out var display)) return;
+            display.Visible = visible;
         }
 
         public void DisplayPlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles)
@@ -120,22 +151,20 @@ namespace Torlando.SquadTracker.SquadPanel
                 IsInInstance = playerModel.IsInInstance,
                 Subgroup = playerModel.Subgroup,
                 Icon = icon,
-                BasicTooltipText = OtherCharactersToString(otherCharacters),
+                BasicTooltipText = OtherCharactersToString(otherCharacters)
             };
 
             var currentRoles = playerModel.Roles.OrderBy(role => role.Name.ToLowerInvariant());
             playerDisplay.UpdateRoles(_roles, currentRoles);
 
-            playerModel.OnRoleUpdated += () => OnRoleUpdate(playerDisplay, playerModel);
-            playerDisplay.OnRoleRemove += (Role role) => OnRoleRemoved(playerDisplay, playerModel, role);
+            // playerModel.OnRoleUpdated += OnRoleUpdate;
+            playerDisplay.OnRoleRemove += OnDisplayRoleRemoved;
 
             playerDisplay.RoleDropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 0);
 
             _playerDisplays.Add(playerModel.AccountName, playerDisplay);
 
             _squadMembersPanel.BasicTooltipText = "";
-
-            Sort();
         }
 
         public void Clear()
@@ -143,24 +172,29 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadMembersPanel.Clear();
             _formerSquadMembersPanel.Clear();
 
-            List<string> keys = new List<string>(_playerDisplays.Keys);
-            foreach (string key in keys)
+            var keys = new List<string>(_playerDisplays.Keys);
+            foreach (var key in keys)
             {
+                _playerDisplays[key].Parent = null;
+                _playerDisplays[key].OnRoleRemove -= OnDisplayRoleRemoved;
                 _playerDisplays[key].Dispose();
+                _playerDisplays[key] = null;
             }
-
+            
             _playerDisplays.Clear();
         }
 
-        private void OnRoleUpdate(PlayerDisplay pd, Player player)
+        public void OnRoleUpdate(Player player)
         {
+            if (!_playerDisplays.TryGetValue(player.AccountName, out var display)) return;
+
             var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant());
-            pd.UpdateRoles(_roles, roles);
+            display.UpdateRoles(_roles, roles);
         }
 
-        private void OnRoleRemoved(PlayerDisplay pd, Player player, Role role)
+        private void OnDisplayRoleRemoved(PlayerDisplay display, Role role)
         {
-            player.RemoveRole(role);
+            OnRoleRemoved?.Invoke(display.AccountName, role);
         }
 
         public void UpdatePlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -178,15 +212,13 @@ namespace Torlando.SquadTracker.SquadPanel
 
             var otherCharacters = playerModel.KnownCharacters.Except(new[] { playerModel.CurrentCharacter }).ToList();
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
-            Sort();
         }
 
         private void UpdateSelectedRoles(Player playerModel, ValueChangedEventArgs e, int index)
         {
             var role = e.CurrentValue;
-            var accountName = playerModel.AccountName;
+            // var accountName = playerModel.AccountName;
             // Presenter.UpdateSelectedRoles(accountName, role, index);
-            Sort();
 
             var selectedRole = _roles.FirstOrDefault(r => r.Name.Equals(role));
             Logger.Info("Selected role: {}, from {}, str {}", selectedRole, index, role);
@@ -224,7 +256,6 @@ namespace Torlando.SquadTracker.SquadPanel
             display.BasicTooltipText = OtherCharactersToString(otherCharacters);
 
             display.Parent = _squadMembersPanel;
-            Sort();
         }
 
         private static string OtherCharactersToString(IReadOnlyCollection<Character> characters)
@@ -248,6 +279,8 @@ namespace Torlando.SquadTracker.SquadPanel
 
             _playerDisplays.Remove(accountName);
             display.Parent = null;
+            display.OnRoleRemove -= OnDisplayRoleRemoved;
+            display.Dispose();
         }
     }
 }

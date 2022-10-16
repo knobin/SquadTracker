@@ -1,6 +1,6 @@
 {
   "name": "Squad Tracker",
-  "version": "0.3.0",
+  "version": "0.4.2",
   "namespace": "Torlando.SquadTracker",
   "package": "SquadTracker.dll",
   "manifest_version": 1,

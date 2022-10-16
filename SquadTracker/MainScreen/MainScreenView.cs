@@ -1,4 +1,5 @@
-﻿using Blish_HUD.Controls;
+﻿using Blish_HUD;
+using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Microsoft.Xna.Framework;
 
@@ -14,9 +15,11 @@ namespace Torlando.SquadTracker.MainScreen
         private ViewContainer _viewContainer;
         private TextBox _searchbar;
 
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
+
         #if DEBUG
-        private StandardButton _addPlayerButton;
-        private StandardButton _removeButton;
+        // private StandardButton _addPlayerButton;
+        // private StandardButton _removeButton;
         #endif
         #endregion
 
@@ -63,6 +66,32 @@ namespace Torlando.SquadTracker.MainScreen
             _squadRolesMenu.ItemSelected += (o, e) => ShowView("Squad Roles");
 
             _searchbar.TextChanged += Searching;
+        }
+
+        protected override void Unload()
+        {
+            Logger.Info("Unloading MainScreenView");
+
+            _menuPanel.Parent = null;
+            _menuCategories.Parent = null;
+            _squadMembersMenu.Parent = null;
+            _squadRolesMenu.Parent = null;
+            _viewContainer.Parent = null;
+            _searchbar.Parent = null;
+
+            _menuPanel.Dispose();
+            _menuCategories.Dispose();
+            _squadMembersMenu.Dispose();
+            _squadRolesMenu.Dispose();
+            _viewContainer.Dispose();
+            _searchbar.Dispose();
+
+            _menuPanel = null;
+            _menuCategories = null;
+            _squadMembersMenu = null;
+            _squadRolesMenu = null;
+            _viewContainer = null;
+            _searchbar = null;
         }
 
         private void ShowView(string viewName)

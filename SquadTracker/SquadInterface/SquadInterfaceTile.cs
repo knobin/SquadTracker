@@ -5,34 +5,51 @@ using Blish_HUD.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using Torlando.SquadTracker.Helpers;
 using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker.SquadInterface
 {
     internal class SquadInterfaceTile : Control
     {
-        public SquadInterfaceTile(Player player, bool self, AsyncTexture2D foregroundTexture, int displayHeightThreshold, ICollection<Role> roles)
+        public SquadInterfaceTile(Player player, AsyncTexture2D foregroundTexture, int displayHeightThreshold, ICollection<Role> roles)
         {
+            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, _fontSize, ContentService.FontStyle.Regular);
+            
             this.Visible = true;
             this.Player = player;
             this.Size = new Point(1, 1);
 
-            IsSelf = self;
             ForegroundTexture = foregroundTexture;
             DisplayHeightThreshold = displayHeightThreshold;
             _roles = roles;
 
-            this.Player.OnRoleUpdated += SetTooltipText;
+            if (player.IsSelf || Player.Role == 0)
+                BorderColorOuter = new Color(211, 211, 211, 255);
 
-            SetDisplayName();
-            SetTooltipText();
+            if (Player.Role == 1)
+                BorderColorOuter = new Color(180, 180, 180, 255);
+
+            if (player.Tag != null)
+                BorderColorOuter = RandomColorGenerator.Generate(player.Tag);
+
+
+            _player.OnRoleUpdated += SetTooltipText;
+
+            // SetDisplayName();
+            // SetTooltipText(_player);
         }
 
-        public Player Player { get { return _player; } set { _player = value; SetDisplayName(); SetTooltipText(); } }
-        public bool IsSelf { get; set; } = false;
+        protected override void DisposeControl()
+        {
+            _player.OnRoleUpdated -= SetTooltipText;
+            _player = null;
+            base.DisposeControl();
+        }
+
+        public Player Player { get { return _player; } private set { _player = value; if (_player != null) { SetDisplayName(); SetTooltipText(_player); } } }
         private Player _player;
 
         private string _displayName;
@@ -44,8 +61,9 @@ namespace Torlando.SquadTracker.SquadInterface
         private AsyncTexture2D RoleIcon2 { get; set; } = null;
 
         private Color ForegroundColor = new Color(35, 35, 35, 55);
-        private Color BorderColor = new Color(0, 0, 0, 255);
-        private Color BorderColorSelf = new Color(211, 211, 211, 255);
+        private Color BorderColorInner = new Color(0, 0, 0, 0);
+        private Color BorderColorOuter = new Color(0, 0, 0, 255);
+        public bool DisplayInnerBorderColor { get; set; } = true;
         public uint BorderThickness { get; set; } = 1;
 
         private readonly ICollection<Role> _roles;
@@ -56,7 +74,7 @@ namespace Torlando.SquadTracker.SquadInterface
             base.OnResized(e);
         }
 
-        public ContentService.FontSize FontSize = ContentService.FontSize.Size14;
+        private readonly ContentService.FontSize _fontSize = ContentService.FontSize.Size14;
         private BitmapFont _font;
 
         protected override void Paint(SpriteBatch spriteBatch, Rectangle bounds)
@@ -66,17 +84,15 @@ namespace Torlando.SquadTracker.SquadInterface
             else
                 spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, bounds, ForegroundColor);
 
-            int spacing = bounds.Height / 20;
-            int usedHeight = 0;
+            var spacing = bounds.Height / 20;
+            var usedHeight = 0;
 
             if (bounds.Height > DisplayHeightThreshold)
             {
-                _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, FontSize, ContentService.FontStyle.Regular);
-
                 var strSize = _font.MeasureString(_displayName);
-                int strWidth = (int)strSize.Width;
+                var strWidth = (int)strSize.Width;
 
-                Rectangle rect = new Rectangle()
+                var rect = new Rectangle()
                 {
                     X = ((bounds.Width - strWidth) / 2),
                     Y = spacing,
@@ -91,26 +107,26 @@ namespace Torlando.SquadTracker.SquadInterface
 
             if (RoleIcon1 != null || RoleIcon2 != null || Icon != null)
             {
-                bool onlyicon = !(bounds.Height > DisplayHeightThreshold);
+                var onlyicon = !(bounds.Height > DisplayHeightThreshold);
 
-                int icond = bounds.Height - usedHeight - spacing - spacing;
-                int rolescale = 8; // power of 2.
-                int roled = icond - rolescale;
+                var icond = bounds.Height - usedHeight - spacing - spacing;
+                var rolescale = 8; // power of 2.
+                var roled = icond - rolescale;
 
-                int totalX = 0;
+                var totalX = 0;
                 totalX += (Icon != null && Player.IsInInstance) ? icond : 0;
                 totalX += (!onlyicon && RoleIcon1 != null) ? roled : 0;
                 totalX += (!onlyicon && RoleIcon2 != null) ? roled : 0;
 
-                int xcount = 1;
+                var xcount = 1;
                 xcount += (Icon != null) ? 1 : 0;
                 xcount += (!onlyicon && RoleIcon1 != null) ? 1 : 0;
                 xcount += (!onlyicon && RoleIcon2 != null) ? 1 : 0;
 
-                int xspacing = (bounds.Width - totalX) / (xcount);
+                var xspacing = (bounds.Width - totalX) / (xcount);
 
                 // Icon.
-                Rectangle irect = new Rectangle()
+                var irect = new Rectangle()
                 {
                     X = 0,
                     Y = usedHeight + spacing,
@@ -145,10 +161,11 @@ namespace Torlando.SquadTracker.SquadInterface
                 }
             }
 
-            if (IsSelf)
-                PaintBorder(spriteBatch, bounds, BorderColorSelf);
-            else
-                PaintBorder(spriteBatch, bounds, BorderColor);
+            if (DisplayInnerBorderColor)
+                PaintBorder(spriteBatch, bounds, BorderColorInner, (int)(2*BorderThickness));
+            
+            if (BorderColorOuter.A > 0)
+                PaintBorder(spriteBatch, bounds, BorderColorOuter, (int)BorderThickness);
         }
 
         public void UpdateContextMenu()
@@ -157,43 +174,41 @@ namespace Torlando.SquadTracker.SquadInterface
             Menu = null;
         }
 
-        private void PaintBorder(SpriteBatch spriteBatch, Rectangle bounds, Color color)
+        private void PaintBorder(SpriteBatch spriteBatch, Rectangle bounds, Color color, int thickness)
         {
-            Rectangle rect = new Rectangle(Point.Zero, Point.Zero);
+            var rect = new Rectangle(Point.Zero, Point.Zero);
 
             // X axis.
             rect.Width = bounds.Width;
-            rect.Height = (int)BorderThickness;
+            rect.Height = thickness;
             spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
-            rect.Y = bounds.Height - (int)BorderThickness;
+            rect.Y = bounds.Height - thickness;
             spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
 
             // Y axis.
-            rect.Width = (int)BorderThickness;
-            rect.Height = bounds.Height - (2 * (int)BorderThickness);
-            rect.Y = (int)BorderThickness;
+            rect.Width = thickness;
+            rect.Height = bounds.Height - (2 * thickness);
+            rect.Y = thickness;
             rect.X = 0;
             spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
-            rect.X = bounds.Width - (int)BorderThickness;
+            rect.X = bounds.Width - thickness;
             spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
         }
 
         private void SetDisplayName()
         {
-            string name = Player.AccountName;
+            var name = Player.AccountName;
             if (Player.CurrentCharacter != null && Player.CurrentCharacter.Name != "")
                 name = Player.CurrentCharacter.Name;
 
-            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, FontSize, ContentService.FontStyle.Regular);
+            var spacing = Size.X / 40;
+            var maxWidth = Size.X - spacing - spacing - (int)BorderThickness - (int)BorderThickness;
 
-            int spacing = Size.X / 40;
-            int maxWidth = Size.X - spacing - spacing - (int)BorderThickness - (int)BorderThickness;
-
-            int count = name.Length;
+            var count = name.Length;
             while (count > 0)
             {
                 var strSize = _font.MeasureString(name);
-                int strWidth = (int)strSize.Width;
+                var strWidth = (int)strSize.Width;
 
                 if (strWidth < maxWidth)
                     break;
@@ -205,15 +220,21 @@ namespace Torlando.SquadTracker.SquadInterface
             _displayName = name;
         }
 
-        private void SetTooltipText()
+        private void SetTooltipText(Player player)
         {
             RoleIcon1 = null;
             RoleIcon2 = null;
 
-            List<Role> assignedRoles = Player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
+            BorderColorInner = new Color(0, 0, 0, 0);
+
+            var assignedRoles = Player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
             if (assignedRoles.Count > 0)
             {
                 RoleIcon1 = assignedRoles.ElementAt(0).Icon;
+                
+                if (DisplayInnerBorderColor)
+                    BorderColorInner = RandomColorGenerator.Generate(assignedRoles.ElementAt(0).Name);
+                
                 if (assignedRoles.Count > 1)
                     RoleIcon2 = assignedRoles.ElementAt(1).Icon;
             }
@@ -221,32 +242,29 @@ namespace Torlando.SquadTracker.SquadInterface
             string text = Player.AccountName;
 
             text += " (";
-            if (Player.Role == 0)
-                text += "Squad Leader";
-            else if (Player.Role == 1)
-                text += "Lieutenant";
-            else if (Player.Role == 2)
-                text += "Member";
-            else if (Player.Role == 3)
-                text += "Invited";
-            else if (Player.Role == 4)
-                text += "Applied";
-            else
-                text += "none";
+            text += Player.Role switch
+            {
+                0 => "Squad Leader",
+                1 => "Lieutenant",
+                2 => "Member",
+                3 => "Invited",
+                4 => "Applied",
+                _ => "none"
+            };
             text += ")";
 
-            Character character = Player.CurrentCharacter;
+            var character = Player.CurrentCharacter;
             if (character != null && character.Name != "")
             {
-                string elite = Specialization.GetEliteName(character.Specialization, character.Profession);
-                string core = Specialization.GetCoreName(character.Profession);
+                var elite = Specialization.GetEliteName(character.Specialization, character.Profession);
+                var core = Specialization.GetCoreName(character.Profession);
                 text += "\n\n" + character.Name + "\n" + core + " (" + elite + ")";
             }
 
             if (assignedRoles.Count > 0)
             {
-                string roleStr = "";
-                for (int i = 0; i < assignedRoles.Count; i++)
+                var roleStr = "";
+                for (var i = 0; i < assignedRoles.Count; i++)
                     roleStr += assignedRoles.ElementAt(i).Name + ((i != assignedRoles.Count - 1) ? ", " : "");
                 text += "\n\nAssigned Roles: " + roleStr;
             }
@@ -257,6 +275,7 @@ namespace Torlando.SquadTracker.SquadInterface
         private void OnContextMenuSelect(string name, bool isChecked)
         {
             var selectedRole = _roles.FirstOrDefault(role => role.Name.Equals(name));
+            
             if (selectedRole != null)
             {
                 if (isChecked)
@@ -280,10 +299,10 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private ContextMenuStrip CreateMenu()
         {
-            ContextMenuStrip menu = new ContextMenuStrip();
+            var menu = new ContextMenuStrip();
 
-            string name = (Player.CurrentCharacter != null) ? Player.CurrentCharacter.Name : Player.AccountName;
-            List<ContextMenuStripItem> items = new List<ContextMenuStripItem>()
+            var name = (Player.CurrentCharacter != null) ? Player.CurrentCharacter.Name : Player.AccountName;
+            var items = new List<ContextMenuStripItem>()
             {
                 new ContextMenuStripItem(name)
             };
@@ -292,7 +311,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
             foreach (var role in _roles.OrderBy(role => role.Name.ToLowerInvariant()))
             {
-                ContextMenuStripItem item = new ContextMenuStripItem(role.Name)
+                var item = new ContextMenuStripItem(role.Name)
                 {
                     CanCheck = true,
                     Checked = assignedRoles.Contains(role)

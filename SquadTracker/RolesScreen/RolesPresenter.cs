@@ -1,11 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Blish_HUD;
 using Blish_HUD.Graphics.UI;
 
 namespace Torlando.SquadTracker.RolesScreen
 {
-    class RolesPresenter : Presenter<RolesView, object>
+    internal class RolesPresenter : Presenter<RolesView, object>
     {
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
+
         public RolesPresenter(RolesView view, ICollection<Role> roles) : base(view, null)
         {
             _roles = roles;
@@ -17,6 +20,11 @@ namespace Torlando.SquadTracker.RolesScreen
             {
                 this.View.AddRoleDisplay(role);
             }
+        }
+
+        protected override void Unload()
+        {
+            Logger.Info("Unloading RolesPresenter");
         }
 
         public void CreateRole(string roleName)

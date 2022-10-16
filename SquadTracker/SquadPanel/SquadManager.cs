@@ -1,9 +1,11 @@
-﻿using System.Linq;
+﻿using System;
+using BridgeHandler;
+using System.Linq;
 using Torlando.SquadTracker.SquadInterface;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
-    class SquadManager
+    internal class SquadManager : IDisposable
     {
         public delegate void PlayerJoinedSquadHandler(Player player, bool isReturning);
         public delegate void PlayerUpdateSquadHandler(Player player);
@@ -20,7 +22,7 @@ namespace Torlando.SquadTracker.SquadPanel
         public event BridgeErrorHandler BridgeError;
         public event BridgeHandler BridgeConnected;
 
-        private readonly PlayersManager _playersManager;
+        private PlayersManager _playersManager;
 
         private readonly Squad _squad;
         private readonly SquadInterfaceView _squadInterfaceView;
@@ -48,6 +50,21 @@ namespace Torlando.SquadTracker.SquadPanel
 
             OnBridgeError(Constants.Placeholder.BridgeHandlerErrorMessage);
         }
+        
+        public void Dispose()
+        {
+            _squad.Dispose();
+
+            if (_playersManager == null)
+                return;
+            
+            _playersManager.PlayerJoinedInstance -= OnPlayerJoinedInstance;
+            _playersManager.PlayerLeftInstance -= OnPlayerLeftInstance;
+            _playersManager.PlayerUpdated -= OnPlayerUpdate;
+            _playersManager.PlayerClear -= OnPlayerClear;
+
+            _playersManager = null;
+        }
 
         public bool IsBridgeConnected()
         {
@@ -59,43 +76,46 @@ namespace Torlando.SquadTracker.SquadPanel
             return _bridgeError;
         }
 
-        public void OnBridgeError(string message)
+        private void OnBridgeError(string message)
         {
             _bridgeError = message;
             _squadInterfaceView.ShowErrorMessage(message);
             BridgeError?.Invoke(message);
         }
 
-        public void BridgeConnectionInfo(bool combatEnabled, bool extrasFound, bool extrasEnabled, bool squadEnabled)
+        public void BridgeConnectionInfo(ConnectionInfo info)
         {
+            if (info.Info.majorApiVersion != Handler.SupportedMajorVersion)
+            {
+                // Major API version is incompatible here.
+                var errMsg = "arcdps_bridge major API version " + info.Info.majorApiVersion.ToString() + 
+                    " is not compatible with BridgeHandler major API version " + Handler.SupportedMajorVersion.ToString() + ".";
+                OnBridgeError(errMsg);
+                return;
+            }
+
             // Getting this function call means that arcdps_bridge has loaded.
             // Both combat and extras can be disabled in the arcdps_bridge config file.
             // For SquadTracker we need both to be loaded.
 
-            if (!squadEnabled) // squad == combatEnabled && extrasEnabled.
+            if (info.SquadEnabled) // squad == combatEnabled && extrasEnabled.
+                return; // No errors.
+            
+            var message = "";
+
+            if (!info.CombatEnabled)
             {
-                string message = "";
-
-                if (!combatEnabled)
-                {
-                    message += Constants.Placeholder.BridgeHandlerCombatDisabledErrorMessage;
-                    message += ((!extrasFound) || (!extrasEnabled)) ? "\n\n" : "";
-                }
-
-                if (!extrasFound)
-                {
-                    message += Constants.Placeholder.BridgeHandlerExtrasErrorMessage;
-                }
-                else if (!extrasEnabled)
-                {
-                    message += Constants.Placeholder.BridgeHandlerExtrasDisabledErrorMessage;
-                }
-
-                if (message.Length > 0)
-                {
-                    OnBridgeError(message);    
-                }
+                message += Constants.Placeholder.BridgeHandlerCombatDisabledErrorMessage;
+                message += ((!info.ExtrasFound) || (!info.ExtrasEnabled)) ? "\n\n" : "";
             }
+
+            if (!info.ExtrasFound)
+                message += Constants.Placeholder.BridgeHandlerExtrasErrorMessage;
+            else if (!info.ExtrasEnabled)
+                message += Constants.Placeholder.BridgeHandlerExtrasDisabledErrorMessage;
+
+            if (message.Length > 0)
+                OnBridgeError(message);
         }
 
         public void SetBridgeConnectionStatus(bool connected)
@@ -118,7 +138,7 @@ namespace Torlando.SquadTracker.SquadPanel
             return _squad;
         }
 
-        public void OnPlayerClear()
+        private void OnPlayerClear()
         {
             _squad.CurrentMembers.Clear();
             _squad.FormerMembers.Clear();

@@ -22,6 +22,9 @@ namespace Torlando.SquadTracker.SearchPanel
         #endregion
 
         private static readonly Logger Logger = Logger.GetLogger<Module>();
+        
+        public delegate void RoleRemovedHandler(string accountName, Role role);
+        public event RoleRemovedHandler OnRoleRemoved;
 
         public SearchPanelView(ICollection<Role> roles)
         {
@@ -38,24 +41,21 @@ namespace Torlando.SquadTracker.SearchPanel
                 Title = "Search result"
             };
         }
+        
+        protected override void Unload()
+        {
+            Logger.Info("Unloading SearchPanelView");
+            Clear();
+
+            _squadMembersPanel.Clear();
+            _squadMembersPanel.Parent = null;
+            _squadMembersPanel.Dispose();
+        }
 
         public void Sort(Dictionary<string, int> order)
         {
-            _squadMembersPanel.SortChildren((PlayerDisplay pd1, PlayerDisplay pd2) =>
-            {
-                int cmp = order[pd1.AccountName].CompareTo(order[pd2.AccountName]);
-
-                if (cmp == 0)
-                {
-                    Character c1 = (pd1.CharacterName != "") ? new Character(pd1.CharacterName, pd1.Profession, pd1.Specialization) : null;
-                    SquadPlayerSort.PlayerSortInfo p1 = new SquadPlayerSort.PlayerSortInfo(pd1.AccountName, c1, pd1.Subgroup, pd1.Role, pd1.IsSelf, pd1.IsInInstance);
-                    Character c2 = (pd2.CharacterName != "") ? new Character(pd2.CharacterName, pd2.Profession, pd2.Specialization) : null;
-                    SquadPlayerSort.PlayerSortInfo p2 = new SquadPlayerSort.PlayerSortInfo(pd2.AccountName, c2, pd2.Subgroup, pd2.Role, pd2.IsSelf, pd2.IsInInstance);
-                    return SquadPlayerSort.Compare(p1, p2);
-                }
-
-                return cmp;
-            });
+            if (_squadMembersPanel.Visible)
+                _squadMembersPanel.SortChildren<PlayerDisplay>(SquadPlayerSort.Compare);
         }
 
         public bool Exists(string accountName)
@@ -79,14 +79,14 @@ namespace Torlando.SquadTracker.SearchPanel
                 IsInInstance = playerModel.IsInInstance,
                 Subgroup = playerModel.Subgroup,
                 Icon = icon,
-                BasicTooltipText = OtherCharactersToString(otherCharacters),
+                BasicTooltipText = OtherCharactersToString(otherCharacters)
             };
 
             var currentRoles = playerModel.Roles.OrderBy(role => role.Name.ToLowerInvariant());
             playerDisplay.UpdateRoles(_roles, currentRoles);
 
-            playerModel.OnRoleUpdated += () => OnRoleUpdate(playerDisplay, playerModel);
-            playerDisplay.OnRoleRemove += (Role role) => OnRoleRemoved(playerDisplay, playerModel, role);
+            // playerModel.OnRoleUpdated += OnRoleUpdate;
+            playerDisplay.OnRoleRemove += OnDisplayRoleRemoved;
 
             playerDisplay.RoleDropdown.ValueChanged += (o, e) => UpdateSelectedRoles(playerModel, e, 0);
 
@@ -107,24 +107,29 @@ namespace Torlando.SquadTracker.SearchPanel
         {
             _squadMembersPanel.Clear();
 
-            List<string> keys = new List<string>(_playerDisplays.Keys);
-            foreach (string key in keys)
+            var keys = new List<string>(_playerDisplays.Keys);
+            foreach (var key in keys)
             {
+                _playerDisplays[key].Parent = null;
+                _playerDisplays[key].OnRoleRemove -= OnDisplayRoleRemoved;
                 _playerDisplays[key].Dispose();
+                _playerDisplays[key] = null;
             }
-
+            
             _playerDisplays.Clear();
         }
 
-        private void OnRoleUpdate(PlayerDisplay pd, Player player)
+        public void OnRoleUpdate(Player player)
         {
+            if (!_playerDisplays.TryGetValue(player.AccountName, out var display)) return;
+
             var roles = player.Roles.OrderBy(role => role.Name.ToLowerInvariant());
-            pd.UpdateRoles(_roles, roles);
+            display.UpdateRoles(_roles, roles);
         }
 
-        private void OnRoleRemoved(PlayerDisplay pd, Player player, Role role)
+        private void OnDisplayRoleRemoved(PlayerDisplay display, Role role)
         {
-            player.RemoveRole(role);
+            OnRoleRemoved?.Invoke(display.AccountName, role);
         }
 
         public void UpdatePlayer(Player playerModel, AsyncTexture2D icon, IEnumerable<Role> roles, List<string> assignedRoles)
@@ -147,7 +152,7 @@ namespace Torlando.SquadTracker.SearchPanel
         private void UpdateSelectedRoles(Player playerModel, ValueChangedEventArgs e, int index)
         {
             var role = e.CurrentValue;
-            var accountName = playerModel.AccountName;
+            // var accountName = playerModel.AccountName;
             // Presenter.UpdateSelectedRoles(accountName, role, index);
 
             var selectedRole = _roles.FirstOrDefault(r => r.Name.Equals(role));

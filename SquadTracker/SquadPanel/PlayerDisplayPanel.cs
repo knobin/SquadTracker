@@ -1,6 +1,5 @@
 ﻿using Blish_HUD.Controls;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -16,13 +15,17 @@ namespace Torlando.SquadTracker.SquadPanel
 
         public void Clear()
         {
-            List<Control> list = _children.ToList();
-            _children = new ControlCollection<Control>();
+            var list = _children.ToList();
+            _children.Clear();
 
-            for (int i = 0; i < list.Count; ++i)
+            for (var i = 0; i < list.Count; ++i)
             {
                 list[i].Parent = null;
+                list[i].Dispose();
+                list[i] = null;
             }
+
+            // list.Clear();
         }
     }
 }

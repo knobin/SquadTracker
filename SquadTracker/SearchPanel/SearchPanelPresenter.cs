@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
+using Blish_HUD;
 using Blish_HUD.Controls;
 using Torlando.SquadTracker.SquadPanel;
 
@@ -17,6 +18,7 @@ namespace Torlando.SquadTracker.SearchPanel
         private readonly TaskQueue _queue = new TaskQueue();
 
         private readonly Squad _squad;
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
 
         public SearchPanelPresenter(
             SearchPanelView view,
@@ -37,7 +39,7 @@ namespace Torlando.SquadTracker.SearchPanel
 
         private void OnSearchInput(object sender, System.EventArgs e)
         {
-            string input = _searchbar.Text;
+            var input = _searchbar.Text.ToLowerInvariant();
             _queue.Enqueue(() =>
             {
                 Filter(input);
@@ -46,12 +48,12 @@ namespace Torlando.SquadTracker.SearchPanel
 
         private void Filter(string input)
         {
-            Dictionary<string, int> order = new Dictionary<string, int>();
+            var order = new Dictionary<string, int>();
 
             foreach (var member in _squad.CurrentMembers.ToList())
             {
-                bool exists = View.Exists(member.AccountName);
-                int match = Match(member, input);
+                var exists = View.Exists(member.AccountName);
+                var match = Match(member, ref input);
                 if (match > 0)
                 {
                     order.Add(member.AccountName, match);
@@ -75,29 +77,28 @@ namespace Torlando.SquadTracker.SearchPanel
             }
         }
 
-        private int Match(Player player, string input)
+        private static int Match(Player player, ref string input)
         {
-            Character character = player.CurrentCharacter;
-            string charname = (character != null) ? character.Name.ToLowerInvariant() : "";
-
-            if ((player.AccountName.ToLowerInvariant().Contains(input) || charname.Contains(input)))
-                return input.Length;
-
-            return 0; 
+            var value = 0;
+            if (player.CurrentCharacter != null)
+                value = player.CurrentCharacter.Name.ToLowerInvariant().Contains(input) ? input.Length : 0;
+            
+            return player.AccountName.ToLowerInvariant().Contains(input) ? input.Length : value;
         }
 
         protected override void UpdateView()
         {
-            Dictionary<string, int> order = new Dictionary<string, int>();
-
+            Logger.Info("Updating SearchPanelPresenter");
+            
+            var order = new Dictionary<string, int>();
+            var input = _searchbar.Text.ToLowerInvariant();
+            
             foreach (var member in _squad.CurrentMembers.ToList())
             {
-                int match = Match(member, _searchbar.Text);
-                if (match > 0)
-                {
-                    order.Add(member.AccountName, match);
-                    AddPlayer(member, false);
-                }
+                var match = Match(member, ref input);
+                if (match <= 0) continue;
+                order.Add(member.AccountName, match);
+                AddPlayer(member, false);
             }
 
             if (order.Count > 0)
@@ -140,12 +141,13 @@ namespace Torlando.SquadTracker.SearchPanel
         {
             _queue.Enqueue(() =>
             {
-                Character character = player.CurrentCharacter;
+                var character = player.CurrentCharacter;
                 var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
                 if (!View.Exists(player.AccountName))
                 {
-                    if (Match(player, _searchbar.Text) > 0)
+                    var input = _searchbar.Text.ToLowerInvariant();
+                    if (Match(player, ref input) > 0)
                     {
                         View.DisplayPlayer(player, icon, _roles);
                         Filter(_searchbar.Text);
@@ -158,17 +160,18 @@ namespace Torlando.SquadTracker.SearchPanel
         {
             _queue.Enqueue(() =>
             {
-                Character character = player.CurrentCharacter;
+                var character = player.CurrentCharacter;
                 var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
                 if (View.Exists(player.AccountName))
                 {
-                    if(Match(player, _searchbar.Text) > 0)
+                    var input = _searchbar.Text.ToLowerInvariant();
+                    if(Match(player, ref input) > 0)
                     {
                         View.UpdatePlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
                         Filter(_searchbar.Text);
                     }
-                else
+                    else
                     {
                         View.RemovePlayer(player.AccountName);
                     }

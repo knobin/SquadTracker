@@ -6,7 +6,7 @@ namespace Torlando.SquadTracker
 {
     internal class Player
     {
-        public delegate void RoleUpdateHandler();
+        public delegate void RoleUpdateHandler(Player player);
 
         public event RoleUpdateHandler OnRoleUpdated;
 
@@ -16,6 +16,7 @@ namespace Torlando.SquadTracker
         public byte Role { get; set; } = 5;
         public uint Subgroup { get; set; } = 0;
         public IReadOnlyCollection<Role> Roles => _roles;
+        public string Tag { get; set; } = null;
         
         public void AddRole(Role role)
         {
@@ -25,7 +26,7 @@ namespace Torlando.SquadTracker
                 {
                     _roles.Add(role);
                     _roles = _roles.OrderBy(r => r.Name.ToLowerInvariant()).ToList();
-                    OnRoleUpdated?.Invoke();
+                    OnRoleUpdated?.Invoke(this);
                 }
             }
         }
@@ -38,7 +39,7 @@ namespace Torlando.SquadTracker
                 {
                     _roles.Remove(role);
                     _roles = _roles.OrderBy(r => r.Name.ToLowerInvariant()).ToList();
-                    OnRoleUpdated?.Invoke();
+                    OnRoleUpdated?.Invoke(this);
                 }
             }
         }
@@ -46,7 +47,7 @@ namespace Torlando.SquadTracker
         public void ClearRoles()
         {
             _roles.Clear();
-            OnRoleUpdated?.Invoke();
+            OnRoleUpdated?.Invoke(this);
         }
 
         private List<Role> _roles = new List<Role>();

@@ -8,9 +8,9 @@ using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
-    class PlayerDisplay : DetailsButton
+    internal class PlayerDisplay : DetailsButton
     {
-        public Dropdown RoleDropdown { get; set; }
+        public Dropdown RoleDropdown { get; private set; }
         public string CharacterName 
         { 
             get 
@@ -68,7 +68,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private List<RoleImage> _roleIcons = new List<RoleImage>();
 
-        public delegate void RoleRemovedHandler(Role role);
+        public delegate void RoleRemovedHandler(PlayerDisplay display, Role role);
         public event RoleRemovedHandler OnRoleRemove;
 
         private const string _placeholderRoleName = Placeholder.DefaultRole;
@@ -87,6 +87,21 @@ namespace Torlando.SquadTracker.SquadPanel
         public void UpdateToolTip(string text)
         {
             Tooltip.BasicTooltipText = text;
+        }
+
+        protected override void DisposeControl()
+        {
+            RoleDropdown.Parent = null;
+            RoleDropdown.Dispose();
+            RoleDropdown = null;
+
+            foreach (var icon in _roleIcons)
+                icon.Dispose();
+
+            _roleIcons = null;
+            OnRoleRemove = null;
+
+            base.DisposeControl();
         }
 
         private Dropdown CreateDropdown(IEnumerable<Role> roles)
@@ -110,12 +125,21 @@ namespace Torlando.SquadTracker.SquadPanel
             return dropdown;
         }
 
-        public RoleImage CreateRoleImage(string name, Role role, Dropdown dropdown)
+        private RoleImage CreateRoleImage(string name, Role role)
         {
-            var rImage = new RoleImage(name) { Parent = this, Size = new Point(27, 27) };
-            rImage.Texture = role.Icon;
-            rImage.OnRemoveClick += () => OnRoleRemove?.Invoke(role);
+            var rImage = new RoleImage(role)
+            {
+                Parent = this,
+                Size = new Point(27, 27),
+                Texture = role.Icon
+            };
+            rImage.OnRemoveClick += OnRemoveClick;
             return rImage;
+        }
+
+        private void OnRemoveClick(Role role)
+        {
+            OnRoleRemove?.Invoke(this, role);
         }
 
         public void UpdateRoles(IEnumerable<Role> availableRoles, IEnumerable<Role> roles)
@@ -126,7 +150,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
             foreach (var role in selectable.OrderBy(r => r.Name.ToLowerInvariant()))
             {
-                var rImage = _roleIcons.Find(i => i.Name == role.Name);
+                var rImage = _roleIcons.Find(i => i.SetRole.Name == role.Name);
                 if (rImage != null)
                 {
                     rImage.Parent = null;
@@ -138,10 +162,10 @@ namespace Torlando.SquadTracker.SquadPanel
             
             foreach (var role in roles.OrderBy(r => r.Name.ToLowerInvariant()))
             {
-                var rImage = _roleIcons.Find(i => i.Name == role.Name);
+                var rImage = _roleIcons.Find(i => i.SetRole.Name == role.Name);
                 if (rImage == null)
                 {
-                    RoleImage icon = CreateRoleImage(role.Name, role, RoleDropdown);
+                    RoleImage icon = CreateRoleImage(role.Name, role);
                     _roleIcons.Add(icon);
                 }
             }
@@ -151,52 +175,57 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private void AlignBottom()
         {
-            var icons = _roleIcons.OrderBy(r => r.Name).ToList();
+            var icons = _roleIcons.OrderBy(r => r.SetRole.Name).ToList();
 
             const int bottomHeight = 35;
-            Point point = new Point(10, 0);
-            for (int i = 0; i < icons.Count; ++i)
+            var point = new Point(10, 0);
+            foreach (var icon in icons)
             {
-                point.Y = (bottomHeight - icons[i].Height) / 2;
-                icons[i].Location = point;
-                point.X += icons[i].Width + 3;
-                icons[i].BasicTooltipText = icons[i].Name;
+                point.Y = (bottomHeight - icon.Height) / 2;
+                icon.Location = point;
+                point.X += icon.Width + 3;
+                icon.BasicTooltipText = icon.SetRole.Name;
             }
             point.X = this.Width - 135 - 10;
             point.Y = (bottomHeight - RoleDropdown.Height) / 2;
             RoleDropdown.Location = point;
 
-            List<Control> list = _children.ToList();
-            list.Sort((c1, c2) => { return c1.Location.X.CompareTo(c2.Location.X); });
-            _children = new ControlCollection<Control>(list);
+            //List<Control> list = _children.ToList();
+            //list.Sort((c1, c2) => { return c1.Location.X.CompareTo(c2.Location.X); });
+            //_children = new ControlCollection<Control>(list);
         }
     }
 
-    class RoleImage : Image
+    internal class RoleImage : Image
     {
-        public string Name { get;}
-        public delegate void RemoveClickHandler();
+        public Role SetRole { get; private set; }
+        public delegate void RemoveClickHandler(Role role);
         public event RemoveClickHandler OnRemoveClick;
 
         private ContextMenuStrip _menu = null;
 
-        public RoleImage(string name)
+        public RoleImage(Role role)
         {
-            Name = name;
+            SetRole = role;
+        }
+
+        protected override void DisposeControl()
+        {
+            _menu?.Dispose();
+            base.DisposeControl();
         }
 
         protected override void OnRightMouseButtonPressed(MouseEventArgs e)
         {
-            if (_menu != null)
-                _menu.Dispose();
+            _menu?.Dispose();
 
             _menu = new ContextMenuStrip();
 
-            List<ContextMenuStripItem> items = new List<ContextMenuStripItem>();
+            var items = new List<ContextMenuStripItem>();
 
-            ContextMenuStripItem remove = new ContextMenuStripItem("Remove " + Name);
+            var remove = new ContextMenuStripItem("Remove " + SetRole.Name);
             remove.Click += (sender, args) => {
-                OnRemoveClick?.Invoke();
+                OnRemoveClick?.Invoke(SetRole);
             };
 
             items.Add(remove);

@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Collections.Generic;
 using Torlando.SquadTracker.RolesScreen;
+using Blish_HUD;
+using Torlando.SquadTracker.SquadInterface;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
@@ -13,6 +15,7 @@ namespace Torlando.SquadTracker.SquadPanel
         private readonly IEnumerable<Role> _roles;
 
         private readonly Squad _squad;
+        private static readonly Logger Logger = Logger.GetLogger<Module>();
 
         public SquadPanelPresenter(
             SquadPanelView view,
@@ -32,10 +35,18 @@ namespace Torlando.SquadTracker.SquadPanel
 
         protected override void UpdateView()
         {
-            foreach (var member in _squad.CurrentMembers.ToList())
+            Logger.Info("Updating SquadPanelPresenter");
+
+            var squad = _squad.CurrentMembers.ToList();
+            squad.Sort(SquadPlayerSort.Compare);
+            
+            for (var i = 0; i < squad.Count; ++i)
             {
-                AddPlayer(member, false);
+                AddPlayer(squad[i], false);
+                squad[i] = null;
             }
+
+            squad.Clear();
 
             foreach (var formerMember in _squad.FormerMembers.ToList())
             {
@@ -53,13 +64,13 @@ namespace Torlando.SquadTracker.SquadPanel
             _squadManager.BridgeConnected += OnBridgeConnected;
 
             if (!_squadManager.IsBridgeConnected())
-            {
                 OnBridgeError(_squadManager.LastBridgeError());
-            }
         }
 
         protected override void Unload()
         {
+            Logger.Info("Unloading SquadPanelPresenter");
+
             // To allow for garbage collection.
             _squadManager.PlayerJoinedSquad -= AddPlayer;
             _playersManager.CharacterChangedSpecialization -= ChangeCharacterSpecialization;
@@ -99,6 +110,15 @@ namespace Torlando.SquadTracker.SquadPanel
             {
                 View.DisplayPlayer(player, icon, _roles);
             }
+
+            View.Sort();
+
+            player.OnRoleUpdated += OnRoleUpdate;
+        }
+
+        private void OnRoleUpdate(Player player)
+        {
+            View.OnRoleUpdate(player);
         }
 
         private void UpdatePlayer(Player player)
@@ -107,12 +127,14 @@ namespace Torlando.SquadTracker.SquadPanel
             var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
             View.UpdatePlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));
+            View.Sort();
         }
 
         private void ChangeCharacterSpecialization(Character character)
         {
             var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
             View.SetPlayerIcon(character.Player, icon);
+            View.Sort();
         }
 
         private void RemovePlayer(string accountName)
@@ -121,6 +143,7 @@ namespace Torlando.SquadTracker.SquadPanel
             if (player == null) return;
 
             View.MovePlayerToFormerMembers(accountName);
+            player.OnRoleUpdated -= OnRoleUpdate;
         }
 
         public void ClearFormerSquadMembers()

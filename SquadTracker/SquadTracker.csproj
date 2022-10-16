@@ -80,6 +80,7 @@
     <Compile Include="BridgeHandler.cs" />
     <Compile Include="Constants\Placeholder.cs" />
     <Compile Include="Helpers\IconHelper.cs" />
+    <Compile Include="Helpers\RandomColorGenerator.cs" />
     <Compile Include="PlayersManager.cs" />
     <Compile Include="Character.cs" />
     <Compile Include="MainScreen\MainScreenPresenter.cs" />
