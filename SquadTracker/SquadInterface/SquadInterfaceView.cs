@@ -14,10 +14,10 @@ namespace Torlando.SquadTracker.SquadInterface
     {
         public SquadInterfaceView(PlayerIconsManager playerIconsManager, ICollection<Role> roles, AsyncTexture2D squad)
         {
-            this.Location = new Point(0, 0);
-            this.Size = new Point(600, 600);
-            this.Visible = true;
-            this.Padding = Thickness.Zero;
+            Location = new Point(0, 0);
+            Size = new Point(600, 600);
+            Visible = true;
+            Padding = Thickness.Zero;
 
             _iconsManager = playerIconsManager;
             _roles = roles;
@@ -26,7 +26,7 @@ namespace Torlando.SquadTracker.SquadInterface
             GenerateResizeArrow(_resizeArrowSize.X, _resizeArrowSize.Y, Color.LightGray);
             
             _errorMessage = new Label() 
-            { 
+            {
                 Font = GameService.Content.DefaultFont18, 
                 Parent = this, 
                 Visible = false,
@@ -36,8 +36,8 @@ namespace Torlando.SquadTracker.SquadInterface
 
         public bool EnableMoving = false;
         private Point _dragStart = new Point(0, 0);
-        private bool _dragResizing = false;
-        private bool _dragMoving = false;
+        private bool _dragResizing;
+        private bool _dragMoving;
 
         private readonly ICollection<Role> _roles;
 
@@ -54,10 +54,10 @@ namespace Torlando.SquadTracker.SquadInterface
         private Point _tileSize = new Point(87, 52);
         private readonly Point _tileMaxSize = new Point(87, 52);
         private readonly Point _tileMinSize = new Point(28, 28);
-        private readonly int _tileTextThreshold = 35;
+        private const int TileTextThreshold = 35;
+        private const uint TilesSplitPoint = 5;
+        private const uint TileSpacing = 5;
         private uint _tilesPerRow = 5;
-        private const uint _tilesSplitPoint = 5;
-        private readonly uint _tileSpacing = 5;
 
         private Point _minSize = new Point(40, 80);
 
@@ -65,27 +65,26 @@ namespace Torlando.SquadTracker.SquadInterface
         private readonly List<SquadInterfaceSubgroup> _subgroups = new List<SquadInterfaceSubgroup>();
 
         private AsyncTexture2D _resizeArrowTexture;
-        private Point _resizeArrowSize = new Point(20, 20);
-        private bool _paintResizeArrow = false;
+        private readonly Point _resizeArrowSize = new Point(20, 20);
+        private bool _paintResizeArrow;
 
         private readonly Label _errorMessage;
 
         private void GenerateResizeArrow(int width, int height, Color color)
         {
-            Texture2D texture = new Texture2D(GameService.Graphics.GraphicsDevice, width, height);
+            var texture = new Texture2D(GameService.Graphics.GraphicsDevice, width, height);
 
-            Color[] data = new Color[width * height];
-            int x = width - 1;
-            for (int i = 0; i < data.Length; ++i)
+            var data = new Color[width * height];
+            var x = width - 1;
+            for (var i = 0; i < data.Length; ++i)
             {
-                int col = i % width;
-                if (col >= x)
-                {
-                    if (col == x)
-                        x--;
-                    data[i] = color;
-                    data[i].A = 25;
-                }
+                var col = i % width;
+                if (col < x) continue;
+                
+                if (col == x)
+                    x--;
+                data[i] = color;
+                data[i].A = 25;
             }
 
             texture.SetData(data);
@@ -96,8 +95,8 @@ namespace Torlando.SquadTracker.SquadInterface
         {
             _errorMessage.Text = message;
             var strSize = _errorMessage.Font.MeasureString(_errorMessage.Text);
-            int strWidth = (int)strSize.Width + 10;
-            int strHeight = (int)strSize.Height + 10;
+            var strWidth = (int)strSize.Width + 10;
+            var strHeight = (int)strSize.Height + 10;
             _errorMessage.Size = new Point(strWidth, strHeight);
 
             _errorMessage.Visible = true;
@@ -158,7 +157,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
         protected override void OnLeftMouseButtonPressed(MouseEventArgs e)
         {
-            bool inResizeBounds = InResizeArrowBounds(Input.Mouse.Position);
+            var inResizeBounds = InResizeArrowBounds(Input.Mouse.Position);
             if (inResizeBounds || EnableMoving)
                 _dragStart = Input.Mouse.Position;
 
@@ -300,7 +299,7 @@ namespace Torlando.SquadTracker.SquadInterface
                 _subgroups.Add(subgroup);
             }
 
-            var tile = new SquadInterfaceTile(player, _tileLoadedTexture, _tileTextThreshold, _roles)
+            var tile = new SquadInterfaceTile(player, _tileLoadedTexture, TileTextThreshold, _roles)
             {
                 Icon = icon,
                 Parent = subgroup
@@ -313,60 +312,58 @@ namespace Torlando.SquadTracker.SquadInterface
         public void Remove(string accountName)
         {
             var index = _tiles.FindIndex(t => t.Player.AccountName == accountName);
-            if (index != -1)
+            if (index == -1) return;
+        
+            _tiles[index].Parent = null;
+
+            var subgroup = _subgroups.Find(s => s.Number == _tiles[index].Player.Subgroup);
+            if (subgroup.Children.Count == 0)
             {
-                _tiles[index].Parent = null;
-
-                var subgroup = _subgroups.Find(s => s.Number == _tiles[index].Player.Subgroup);
-                if (subgroup.Children.Count == 0)
-                {
-                    subgroup.Parent = null;
-                    subgroup.Dispose();
-                    _subgroups.Remove(subgroup);
-                }
-
-                _tiles.RemoveAt(index);
-                UpdateTilePositions();
+                subgroup.Parent = null;
+                subgroup.Dispose();
+                _subgroups.Remove(subgroup);
             }
-        }
+
+            _tiles.RemoveAt(index);
+            UpdateTilePositions();
+            }
 
         public void Update(Player player)
         {
             var index = _tiles.FindIndex(t => t.Player.AccountName == player.AccountName);
-            if (index != -1)
+            if (index == -1) return;
+            
+            var character = player.CurrentCharacter;
+            var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
+
+            if (_tiles[index].Parent is SquadInterfaceSubgroup currentSubgroup)
             {
-                var character = player.CurrentCharacter;
-                var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
-
-                if (_tiles[index].Parent is SquadInterfaceSubgroup currentSubgroup)
+                if (currentSubgroup.Number != player.Subgroup)
                 {
-                    if (currentSubgroup.Number != player.Subgroup)
+                    var newSubgroup = _subgroups.Find(s2 => s2.Number == player.Subgroup);
+
+                    if (newSubgroup == null)
                     {
-                        var newSubgroup = _subgroups.Find(s2 => s2.Number == player.Subgroup);
+                        var color = (player.Subgroup % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
+                        newSubgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor, _roles) { Parent = this };
+                        _subgroups.Add(newSubgroup);
+                    }
 
-                        if (newSubgroup == null)
-                        {
-                            var color = (player.Subgroup % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
-                            newSubgroup = new SquadInterfaceSubgroup(player.Subgroup, color, _subgroupHoverColor, _roles) { Parent = this };
-                            _subgroups.Add(newSubgroup);
-                        }
+                    _tiles[index].Parent = newSubgroup;
 
-                        _tiles[index].Parent = newSubgroup;
-
-                        if (currentSubgroup.Children.Count == 0)
-                        {
-                            currentSubgroup.Parent = null;
-                            _subgroups.Remove(currentSubgroup);
-                        }
+                    if (currentSubgroup.Children.Count == 0)
+                    {
+                        currentSubgroup.Parent = null;
+                        _subgroups.Remove(currentSubgroup);
                     }
                 }
-
-                // _tiles[index].Player = player;
-                _tiles[index].Icon = icon;
-
-                UpdateTilePositions();
             }
-        }
+
+            // _tiles[index].Player = player;
+            _tiles[index].Icon = icon;
+
+            UpdateTilePositions();
+            }
 
         private void GenerateSizes()
         {
@@ -377,25 +374,24 @@ namespace Torlando.SquadTracker.SquadInterface
 
             uint maxSubCount = 1;
 
-            for (var i = 0; i < subgroups.Count; i++)
+            foreach (var t in subgroups.Where(t => t.Children.Count > maxSubCount))
             {
-                if (subgroups[i].Children.Count > maxSubCount)
-                    maxSubCount = (uint)subgroups[i].Children.Count;
+                maxSubCount = (uint)t.Children.Count;
             }
 
-            var tilesPerRow = (maxSubCount > _tilesSplitPoint) ? _tilesPerRow : maxSubCount;
+            var tilesPerRow = (maxSubCount > TilesSplitPoint) ? _tilesPerRow : maxSubCount;
 
-            var availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (tilesPerRow - 1));
+            var availX = (int)(Size.X - (TileSpacing * 10)) - (int)(TileSpacing * (tilesPerRow - 1));
             var tileX = (int)(availX / tilesPerRow);
 
-            if (maxSubCount > _tilesSplitPoint)
+            if (maxSubCount > TilesSplitPoint)
             {
                 if (tileX > _tileMaxSize.X)
                 {
                     if (maxSubCount > _tilesPerRow)
                     {
                         tilesPerRow = ++_tilesPerRow;
-                        availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (tilesPerRow - 1));
+                        availX = (int)(Size.X - (TileSpacing * 10)) - (int)(TileSpacing * (tilesPerRow - 1));
                         tileX = (int)(availX / tilesPerRow);
                     }
                 }
@@ -404,10 +400,10 @@ namespace Torlando.SquadTracker.SquadInterface
                     var underMax = (int)(_tileMaxSize.X * (_tilesPerRow - 1));
                     var current = (int)(tileX * _tilesPerRow);
 
-                    if (underMax > current && _tilesPerRow > _tilesSplitPoint)
+                    if (underMax > current && _tilesPerRow > TilesSplitPoint)
                     {
                         tilesPerRow = --_tilesPerRow;
-                        availX = (int)(Size.X - (_tileSpacing * 10)) - (int)(_tileSpacing * (tilesPerRow - 1));
+                        availX = (int)(Size.X - (TileSpacing * 10)) - (int)(TileSpacing * (tilesPerRow - 1));
                         tileX = (int)(availX / tilesPerRow);
                     }
                 }
@@ -420,10 +416,10 @@ namespace Torlando.SquadTracker.SquadInterface
                 tileX = _tileMinSize.X;
             _tileSize.X = tileX;
 
-            var tileXP = ((double)(tileX - _tileMinSize.X) / (double)(_tileMaxSize.X - _tileMinSize.X));
-            _tileSize.Y = _tileMinSize.Y + (int)(tileXP * (double)(_tileMaxSize.Y - _tileMinSize.Y));
+            var tileXp = ((tileX - _tileMinSize.X) / (double)(_tileMaxSize.X - _tileMinSize.X));
+            _tileSize.Y = _tileMinSize.Y + (int)(tileXp * (_tileMaxSize.Y - _tileMinSize.Y));
 
-            _minSize.X = (int)(_tileSpacing * 10) + (int)(_tileMinSize.X * tilesPerRow) + (int)(_tileSpacing * (tilesPerRow - 1));
+            _minSize.X = (int)(TileSpacing * 10) + (int)(_tileMinSize.X * tilesPerRow) + (int)(TileSpacing * (tilesPerRow - 1));
 
             subgroups.Clear();
         }
@@ -439,15 +435,15 @@ namespace Torlando.SquadTracker.SquadInterface
 
             var point = new Point(0, 0);
 
-            var textWidth = (int)(_tileSpacing * 10);
-            var xpadding = (int)(_tileSpacing * 2);
-            var ypadding = (int)(_tileSpacing);
+            const int textWidth = (int)(TileSpacing * 10);
+            const int paddingX = (int)(TileSpacing * 2);
+            const int paddingY = (int)(TileSpacing);
 
-            for (int i = 0; i < subgroups.Count; i++)
+            for (var i = 0; i < subgroups.Count; i++)
             {
                 var color = (i % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
                 subgroups[i].ForegroundColor = color;
-                subgroups[i].UpdateTileSizes(Size.X, textWidth - xpadding, ypadding, _tileSize, _tilesPerRow, _tileSpacing);
+                subgroups[i].UpdateTileSizes(Size.X, textWidth - paddingX, paddingY, _tileSize, _tilesPerRow, TileSpacing);
                 subgroups[i].Location = point;
                 point.Y += subgroups[i].Size.Y;
             }

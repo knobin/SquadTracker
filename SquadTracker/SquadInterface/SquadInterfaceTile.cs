@@ -67,6 +67,8 @@ namespace Torlando.SquadTracker.SquadInterface
         public uint BorderThickness { get; set; } = 1;
 
         private readonly ICollection<Role> _roles;
+        
+        private bool _isUpdatingMenu = false;
 
         protected override void OnResized(ResizedEventArgs e)
         {
@@ -274,15 +276,15 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private void OnContextMenuSelect(string name, bool isChecked)
         {
-            var selectedRole = _roles.FirstOrDefault(role => role.Name.Equals(name));
+            if (_isUpdatingMenu) return;
             
-            if (selectedRole != null)
-            {
-                if (isChecked)
-                    Player.AddRole(selectedRole);
-                else
-                    Player.RemoveRole(selectedRole);
-            }
+            var selectedRole = _roles.FirstOrDefault(role => role.Name.Equals(name));
+            if (selectedRole == null) return;
+            
+            if (isChecked)
+                Player.AddRole(selectedRole);
+            else
+                Player.RemoveRole(selectedRole);
         }
 
         protected override void OnRightMouseButtonPressed(MouseEventArgs e)
@@ -293,6 +295,7 @@ namespace Torlando.SquadTracker.SquadInterface
             }
             else
             {
+                UpdateMenu();
                 Menu.Show(e.MousePosition);
             }
         }
@@ -326,6 +329,21 @@ namespace Torlando.SquadTracker.SquadInterface
             menu.Show(Input.Mouse.Position);
 
             return menu;
+        }
+        
+        private void UpdateMenu()
+        {
+            _isUpdatingMenu = true;
+            
+            foreach (var child in Menu.Children)
+            {
+                if (!(child is ContextMenuStripItem item)) continue;
+                var hasRole = _roles.FirstOrDefault(role => role.Name.Equals(item.Text));
+                if (hasRole == null) continue;
+                item.Checked = Player.Roles.Contains(hasRole);
+            }
+
+            _isUpdatingMenu = false;
         }
     }
 }

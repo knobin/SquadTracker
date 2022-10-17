@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Torlando.SquadTracker
 {
-    class PlayerIconsManager
+    internal class PlayerIconsManager
     {
         private readonly ContentsManager _contentsManager;
         private readonly SettingEntry<bool> _areColorIconsEnabled;
@@ -20,7 +20,7 @@ namespace Torlando.SquadTracker
             _contentsManager = contentsManager;
             _areColorIconsEnabled = areColorIconsEnabled;
 
-            this.Initialize();
+            Initialize();
 
             _areColorIconsEnabled.SettingChanged += (o, e) => this.Initialize();
         }

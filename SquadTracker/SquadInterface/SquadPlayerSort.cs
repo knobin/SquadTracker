@@ -49,7 +49,7 @@ namespace Torlando.SquadTracker.SquadInterface
                 return 1;
 
             if (player1.CurrentCharacter == null || player2.CurrentCharacter == null)
-                return String.Compare(player1.AccountName, player2.AccountName, StringComparison.Ordinal);
+                return string.Compare(player1.AccountName, player2.AccountName, StringComparison.Ordinal);
 
             if (player1.CurrentCharacter.Profession != player2.CurrentCharacter.Profession)
             {
@@ -59,7 +59,7 @@ namespace Torlando.SquadTracker.SquadInterface
             }
             
             if (player1.CurrentCharacter.Specialization == player2.CurrentCharacter.Specialization)
-                return String.Compare(player1.CurrentCharacter.Name, player2.CurrentCharacter.Name, StringComparison.Ordinal);
+                return string.Compare(player1.CurrentCharacter.Name, player2.CurrentCharacter.Name, StringComparison.Ordinal);
 
             return player2.CurrentCharacter.Specialization.CompareTo(player1.CurrentCharacter.Specialization);
         }
@@ -81,8 +81,8 @@ namespace Torlando.SquadTracker.SquadInterface
             if (pd2.IsSelf)
                 return 1;
             
-            if (String.IsNullOrEmpty(pd1.CharacterName) || String.IsNullOrEmpty(pd2.CharacterName))
-                return String.Compare(pd1.AccountName, pd2.AccountName, StringComparison.Ordinal);
+            if (string.IsNullOrEmpty(pd1.CharacterName) || string.IsNullOrEmpty(pd2.CharacterName))
+                return string.Compare(pd1.AccountName, pd2.AccountName, StringComparison.Ordinal);
 
             if (pd1.Profession != pd2.Profession)
             {
@@ -94,7 +94,7 @@ namespace Torlando.SquadTracker.SquadInterface
             if (pd1.Specialization != pd2.Specialization)
                 return pd2.Specialization.CompareTo(pd1.Specialization);
             
-            return String.Compare(pd1.CharacterName, pd2.CharacterName, StringComparison.Ordinal);
+            return string.Compare(pd1.CharacterName, pd2.CharacterName, StringComparison.Ordinal);
         }
     }
 }

@@ -12,9 +12,9 @@ namespace Torlando.SquadTracker
 
         public string AccountName { get; set; }
         public bool IsInInstance { get; set; } = true;
-        public bool IsSelf { get; set; } = false;
+        public bool IsSelf { get; set; }
         public byte Role { get; set; } = 5;
-        public uint Subgroup { get; set; } = 0;
+        public uint Subgroup { get; set; }
         public IReadOnlyCollection<Role> Roles => _roles;
         public string Tag { get; set; } = null;
         

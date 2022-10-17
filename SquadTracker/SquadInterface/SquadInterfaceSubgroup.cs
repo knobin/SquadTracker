@@ -24,6 +24,8 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private readonly ICollection<Role> _roles;
 
+        private bool _isUpdatingMenu = false;
+
         public SquadInterfaceSubgroup(uint subgroupNumber, Color bgColor, Color hoverColor, ICollection<Role> roles)
         {
             this.Visible = true;
@@ -89,6 +91,19 @@ namespace Torlando.SquadTracker.SquadInterface
 
             spriteBatch.DrawStringOnCtrl(this, Number.ToString(), _font, _numberTextRect, Color.White);
         }
+        
+        protected override void OnRightMouseButtonPressed(MouseEventArgs e)
+        {
+            if (Menu == null)
+            {
+                Menu = CreateMenu();
+            }
+            else
+            {
+                UpdateMenu();
+                Menu.Show(e.MousePosition);
+            }
+        }
 
         protected override void OnMouseEntered(MouseEventArgs e)
         {
@@ -102,6 +117,81 @@ namespace Torlando.SquadTracker.SquadInterface
             _isMouseOver = false;
 
             base.OnMouseLeft(e);
+        }
+
+        private ContextMenuStrip CreateMenu()
+        {
+            var menu = new ContextMenuStrip();
+
+            var name = "Subgroup " + Number;
+            var items = new List<ContextMenuStripItem>()
+            {
+                new ContextMenuStripItem(name)
+            };
+
+            foreach (var role in _roles.OrderBy(role => role.Name.ToLowerInvariant()))
+            {
+                var item = new ContextMenuStripItem(role.Name)
+                {
+                    CanCheck = true,
+                    Checked = AllTilesHaveRole(role)
+                };
+                item.CheckedChanged += (sender, args) => {
+                    OnContextMenuSelect(role.Name, item.Checked);
+                };
+                items.Add(item);
+            }
+
+            menu.AddMenuItems(items);
+            menu.Show(Input.Mouse.Position);
+
+            return menu;
+        }
+        
+        private void OnContextMenuSelect(string name, bool isChecked)
+        {
+            if (_isUpdatingMenu) return;
+            
+            var selectedRole = _roles.FirstOrDefault(role => role.Name.Equals(name));
+            if (selectedRole == null) return;
+
+            foreach (var child in _children.ToList())
+            {
+                if (!(child is SquadInterfaceTile tile)) continue;
+                
+                if (isChecked)
+                    tile.Player.AddRole(selectedRole);
+                else
+                    tile.Player.RemoveRole(selectedRole);
+            }
+        }
+
+        private bool AllTilesHaveRole(Role role)
+        {
+            foreach (var child in _children.ToList())
+            {
+                if (!(child is SquadInterfaceTile tile)) continue;
+
+                if (!tile.Player.Roles.Contains(role))
+                    return false;
+            }
+                
+            return true;
+        }
+
+        private void UpdateMenu()
+        {
+            _isUpdatingMenu = true;
+            
+            foreach (var child in Menu.Children)
+            {
+                if (!(child is ContextMenuStripItem item)) continue;
+                var hasRole = _roles.FirstOrDefault(role => role.Name.Equals(item.Text));
+                if (hasRole == null) continue;
+                item.Checked = AllTilesHaveRole(hasRole);
+            }
+
+            _isUpdatingMenu = false;
         }
     }
 }

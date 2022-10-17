@@ -5,7 +5,6 @@ using System.Text;
 using Blish_HUD;
 using Blish_HUD.Controls;
 using BridgeHandler;
-using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker
 {
@@ -100,13 +99,13 @@ namespace Torlando.SquadTracker
                 player.CurrentCharacter = character; // Assigns the character to known characters for player.
                 player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
                 player.IsInInstance = playerInfo.inInstance;
-                player.Subgroup = (uint)playerInfo.subgroup;
+                player.Subgroup = playerInfo.subgroup;
                 player.Role = playerInfo.role;
             }
             else
             {
                 Logger.Info("Assigning Character: \"{}\" : to new user \"{}\"", (character != null) ? character.Name : "", playerInfo.accountName);
-                player = new Player(playerInfo.accountName, character, (uint)playerInfo.subgroup)
+                player = new Player(playerInfo.accountName, character, playerInfo.subgroup)
                 {
                     IsInInstance = playerInfo.inInstance,
                     Role = playerInfo.role,
@@ -144,11 +143,14 @@ namespace Torlando.SquadTracker
 
                 if (index == -1) continue;
                 
-                var sb = new StringBuilder(str);
-                sb[index] = '\n';
+                var sb = new StringBuilder(str)
+                {
+                    [index] = '\n'
+                };
                 str = sb.ToString();
             }
 
+            // TODO(knobin): Rare collection modified error here (happened when many in squad left at around the same time).
             ScreenNotification.ShowNotification(str, ScreenNotification.NotificationType.Info, null, 6);
         }
 
@@ -188,8 +190,8 @@ namespace Torlando.SquadTracker
             var playerInfo = entry.player;
             playerInfo.accountName = playerInfo.accountName.TrimStart(':');
             
-            Logger.Info("Update {} : {}, inInstance {}", playerInfo.accountName, (playerInfo.characterName != null) ? playerInfo.characterName : "", playerInfo.inInstance);
-            if (playerInfo.characterName != null)
+            Logger.Info("Update {} : {}, inInstance {}", playerInfo.accountName, playerInfo.characterName ?? "", playerInfo.inInstance);
+            if (!string.IsNullOrEmpty(playerInfo.characterName))
             {
                 if (_characters.TryGetValue(playerInfo.characterName, out var srcCharacter))
                 {
