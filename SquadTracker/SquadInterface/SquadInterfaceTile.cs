@@ -35,27 +35,29 @@ namespace Torlando.SquadTracker.SquadInterface
             if (player.Tag != null)
                 BorderColorOuter = RandomColorGenerator.Generate(player.Tag);
 
-
-            _player.OnRoleUpdated += SetTooltipText;
-
+            _player.OnRoleUpdated += OnPlayerRoleUpdate;
+            
+            UpdateInformation();
             // SetDisplayName();
             // SetTooltipText(_player);
         }
 
         protected override void DisposeControl()
         {
-            _player.OnRoleUpdated -= SetTooltipText;
+            _player.OnRoleUpdated -= OnPlayerRoleUpdate;
             _player = null;
             base.DisposeControl();
         }
 
-        public Player Player { get { return _player; } private set { _player = value; if (_player != null) { SetDisplayName(); SetTooltipText(_player); } } }
+        public Player Player { get { return _player; } private set { _player = value;
+            UpdateInformation();
+        } }
         private Player _player;
 
         private string _displayName;
-        public int DisplayHeightThreshold { get; set; }
+        private int DisplayHeightThreshold { get; set; }
 
-        public AsyncTexture2D ForegroundTexture { get; set; } = null;
+        private AsyncTexture2D ForegroundTexture { get; set; } = null;
         public AsyncTexture2D Icon { get; set; } = null;
         private AsyncTexture2D RoleIcon1 { get; set; } = null;
         private AsyncTexture2D RoleIcon2 { get; set; } = null;
@@ -64,11 +66,45 @@ namespace Torlando.SquadTracker.SquadInterface
         private Color BorderColorInner = new Color(0, 0, 0, 0);
         private Color BorderColorOuter = new Color(0, 0, 0, 255);
         public bool DisplayInnerBorderColor { get; set; } = true;
-        public uint BorderThickness { get; set; } = 1;
+        private uint BorderThickness { get; set; } = 1;
 
         private readonly ICollection<Role> _roles;
         
         private bool _isUpdatingMenu = false;
+
+        private void OnPlayerRoleUpdate(Player player)
+        {
+            RoleIcon1 = null;
+            RoleIcon2 = null;
+
+            BorderColorInner = new Color(0, 0, 0, 0);
+
+            var assignedRoles = Player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
+            if (assignedRoles.Count > 0)
+            {
+                RoleIcon1 = assignedRoles.ElementAt(0).Icon;
+                
+                if (DisplayInnerBorderColor)
+                    BorderColorInner = RandomColorGenerator.Generate(assignedRoles.ElementAt(0).Name);
+                
+                if (assignedRoles.Count > 1)
+                    RoleIcon2 = assignedRoles.ElementAt(1).Icon;
+            }
+
+            UpdateInformation();
+
+            // Tell parent subgroup to reorder if necessary.  
+            if (Parent is SquadInterfaceSubgroup sub)
+                sub.UpdateTilePositions();
+        }
+        
+        public void UpdateInformation()
+        {
+            if (_player == null) return;
+            
+            SetDisplayName(); 
+            SetTooltipText(_player);
+        }
 
         protected override void OnResized(ResizedEventArgs e)
         {
@@ -224,23 +260,6 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private void SetTooltipText(Player player)
         {
-            RoleIcon1 = null;
-            RoleIcon2 = null;
-
-            BorderColorInner = new Color(0, 0, 0, 0);
-
-            var assignedRoles = Player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
-            if (assignedRoles.Count > 0)
-            {
-                RoleIcon1 = assignedRoles.ElementAt(0).Icon;
-                
-                if (DisplayInnerBorderColor)
-                    BorderColorInner = RandomColorGenerator.Generate(assignedRoles.ElementAt(0).Name);
-                
-                if (assignedRoles.Count > 1)
-                    RoleIcon2 = assignedRoles.ElementAt(1).Icon;
-            }
-
             string text = Player.AccountName;
 
             text += " (";
@@ -263,6 +282,7 @@ namespace Torlando.SquadTracker.SquadInterface
                 text += "\n\n" + character.Name + "\n" + core + " (" + elite + ")";
             }
 
+            var assignedRoles = Player.Roles.OrderBy(role => role.Name.ToLowerInvariant()).ToList();
             if (assignedRoles.Count > 0)
             {
                 var roleStr = "";

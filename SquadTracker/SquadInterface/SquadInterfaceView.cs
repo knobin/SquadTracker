@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Linq;
+using MonoGame.Extended.BitmapFonts;
 using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker.SquadInterface
@@ -32,6 +33,10 @@ namespace Torlando.SquadTracker.SquadInterface
                 Visible = false,
                 Location = new Point(10, 10)
             };
+            
+            _font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, FontSize, ContentService.FontStyle.Regular);
+            
+            ResizeBar();
         }
 
         public bool EnableMoving = false;
@@ -42,7 +47,9 @@ namespace Torlando.SquadTracker.SquadInterface
         private readonly ICollection<Role> _roles;
 
         private readonly Color _bgColor = new Color(0, 0, 0, 25);
+        private readonly Color _barColor = new Color(14, 16, 18, 125);
         private readonly Color _hoverColor = new Color(5, 5, 5, 175);
+        private readonly Color _borderColor = new Color(6, 7, 8, 180);
         private readonly Color _subgroupHoverColor = new Color(0, 0, 0, 100);
         private readonly Color _subgroupColor1 = new Color(20, 20, 20, 50);
         private readonly Color _subgroupColor2 = new Color(30, 30, 30, 50);
@@ -60,6 +67,9 @@ namespace Torlando.SquadTracker.SquadInterface
         private uint _tilesPerRow = 5;
 
         private Point _minSize = new Point(40, 80);
+        private uint _barHeight = 0;
+        private const uint BarHeightBig = 42;
+        private const uint BarHeightSmall = 32;
 
         private readonly List<SquadInterfaceTile> _tiles = new List<SquadInterfaceTile>();
         private readonly List<SquadInterfaceSubgroup> _subgroups = new List<SquadInterfaceSubgroup>();
@@ -69,6 +79,9 @@ namespace Torlando.SquadTracker.SquadInterface
         private bool _paintResizeArrow;
 
         private readonly Label _errorMessage;
+        
+        private readonly BitmapFont _font;
+        private const ContentService.FontSize FontSize = ContentService.FontSize.Size18;
 
         private void GenerateResizeArrow(int width, int height, Color color)
         {
@@ -108,22 +121,82 @@ namespace Torlando.SquadTracker.SquadInterface
             _errorMessage.Text = "";
         }
 
+        private Point ContentSize()
+        {
+            return new Point(Size.X, Size.Y - (int)_barHeight);
+        }
+
         public void OnRoleCollectionUpdate()
         {
             var tiles = _tiles.ToList();
             foreach (var tile in tiles)
                 tile.UpdateContextMenu();
         }
+        
+        private void PaintBorder(SpriteBatch spriteBatch, Rectangle bounds, Color color, int thickness)
+        {
+            var rect = new Rectangle(Point.Zero, Point.Zero);
+
+            // X axis.
+            rect.Width = bounds.Width;
+            rect.Height = thickness;
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
+            rect.Y = bounds.Height - thickness;
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
+
+            // Y axis.
+            rect.Width = thickness;
+            rect.Height = bounds.Height - (2 * thickness);
+            rect.Y = thickness;
+            rect.X = 0;
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
+            rect.X = bounds.Width - thickness;
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, rect, color);
+        }
+
+        private void PaintBar(SpriteBatch spriteBatch, Rectangle bounds)
+        {
+            // Background.
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, bounds, _barColor);
+            
+            // Squad size.
+            const int textWidth = (int)(TileSpacing * 10);
+            const int paddingX = (int)(TileSpacing * 2);
+            bounds.X = textWidth - paddingX;
+            bounds.Height -= 1;
+            spriteBatch.DrawStringOnCtrl(this, _tiles.Count.ToString(), _font, bounds, Color.White);
+            
+            
+            var size = new Point(Size.X, 1);
+            var pos = new Point(0, bounds.Location.Y + bounds.Height);
+            var lineBounds = new Rectangle(pos, size);
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, lineBounds, _borderColor);
+        }
 
         public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)
         {
-            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(Point.Zero, Size), _activeBackgroundColor);
+            var pos = new Point(0, 0);
+            
+            var barSize = new Point(Size.X, (int)_barHeight);
+            var barBounds = new Rectangle(pos, barSize);
+            PaintBar(spriteBatch, barBounds);
+            
+            pos.Y += barSize.Y;
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(pos, ContentSize()), _activeBackgroundColor);
 
-            if (_paintResizeArrow)
-            {
-                var arrow = new Vector2(Location.X + Size.X - _resizeArrowSize.X, Location.Y + Size.Y - _resizeArrowSize.Y);
-                spriteBatch.Draw(_resizeArrowTexture, arrow, Color.White);
-            }
+            if (!_paintResizeArrow) return;
+            var arrow = new Vector2(Location.X + Size.X - _resizeArrowSize.X, Location.Y + Size.Y - _resizeArrowSize.Y);
+            spriteBatch.Draw(_resizeArrowTexture, arrow, Color.White);
+        }
+
+        public override void PaintAfterChildren(SpriteBatch spriteBatch, Rectangle bounds)
+        {
+            PaintBorder(spriteBatch, bounds, _borderColor, 1);
+        }
+
+        public void OnBoonPrioritizeChange()
+        {
+            UpdateTilePositions();
         }
 
         protected override void OnResized(ResizedEventArgs e)
@@ -326,7 +399,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
             _tiles.RemoveAt(index);
             UpdateTilePositions();
-            }
+        }
 
         public void Update(Player player)
         {
@@ -361,9 +434,10 @@ namespace Torlando.SquadTracker.SquadInterface
 
             // _tiles[index].Player = player;
             _tiles[index].Icon = icon;
+            _tiles[index].UpdateInformation();
 
             UpdateTilePositions();
-            }
+        }
 
         private void GenerateSizes()
         {
@@ -424,16 +498,22 @@ namespace Torlando.SquadTracker.SquadInterface
             subgroups.Clear();
         }
 
+        private void ResizeBar()
+        {
+            _barHeight = _tileSize.Y > TileTextThreshold ? BarHeightBig : BarHeightSmall;
+        }
+
         private void UpdateTilePositions()
         {
             if (_children.Count == 0) return;
 
             var subgroups = _children.OfType<SquadInterfaceSubgroup>().OrderBy(o => o.Number).ToList();
             if (subgroups.Count == 0) return;
-
+            
             GenerateSizes();
-
-            var point = new Point(0, 0);
+            ResizeBar();
+            
+            var point = new Point(0, (int)_barHeight);
 
             const int textWidth = (int)(TileSpacing * 10);
             const int paddingX = (int)(TileSpacing * 2);

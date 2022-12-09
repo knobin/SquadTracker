@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Torlando.SquadTracker.SquadPanel;
 
 namespace Torlando.SquadTracker.SquadInterface
@@ -31,11 +32,26 @@ namespace Torlando.SquadTracker.SquadInterface
             };
         }
 
-        public static int Compare(Player player1, Player player2)
+        public static int Compare(Player player1, Player player2, bool prioritizeBoons)
         {
             var cmp = player1.Subgroup.CompareTo(player2.Subgroup);
             if (cmp != 0)
                 return cmp;
+         
+            if (prioritizeBoons)
+            {
+                if (player1.Roles.Count > 0 && player2.Roles.Count > 0)
+                {
+                    var roleCmp = string.Compare(player1.Roles.ElementAt(0).Name, player2.Roles.ElementAt(0).Name,
+                        StringComparison.Ordinal);
+                    if (roleCmp != 0)
+                        return roleCmp;
+                }
+                else if (player1.Roles.Count > 0 && player2.Roles.Count == 0)
+                    return -1;
+                else if (player1.Roles.Count == 0 && player2.Roles.Count > 0)
+                    return 1;
+            }
             
             if (player1.IsInInstance != player2.IsInInstance)
                 return player2.IsInInstance.CompareTo(player1.IsInInstance);
@@ -64,11 +80,25 @@ namespace Torlando.SquadTracker.SquadInterface
             return player2.CurrentCharacter.Specialization.CompareTo(player1.CurrentCharacter.Specialization);
         }
 
-        public static int Compare(PlayerDisplay pd1, PlayerDisplay pd2)
+        public static int Compare(PlayerDisplay pd1, PlayerDisplay pd2, bool prioritizeBoons)
         {
             var cmp = pd1.Subgroup.CompareTo(pd2.Subgroup);
             if (cmp != 0)
                 return cmp;
+         
+            if (prioritizeBoons)
+            {
+                if (pd1.RoleIcons().Count > 0 && pd2.RoleIcons().Count > 0)
+                {
+                    var roleCmp = string.Compare(pd1.RoleIcons().ElementAt(0).SetRole.Name, pd2.RoleIcons().ElementAt(0).SetRole.Name, StringComparison.Ordinal);
+                    if (roleCmp != 0)
+                        return roleCmp;
+                }
+                else if (pd1.RoleIcons().Count > 0 && pd2.RoleIcons().Count == 0)
+                    return -1;
+                else if (pd1.RoleIcons().Count == 0 && pd2.RoleIcons().Count > 0)
+                    return 1;
+            }
             
             if (pd1.IsInInstance != pd2.IsInInstance)
                 return pd2.IsInInstance.CompareTo(pd1.IsInInstance);

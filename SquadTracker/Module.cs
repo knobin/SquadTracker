@@ -61,6 +61,7 @@ namespace Torlando.SquadTracker
 
         public static SettingEntry<bool> PlayerWithRoleLeaveNotification { get; private set; }
         public static SettingEntry<bool> KeepPlayerRolesWhenRejoining { get; private set; }
+        public static SettingEntry<bool> PrioritizeBoonsWhenSorting { get; private set; }
 
         [ImportingConstructor]
         public Module([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -127,6 +128,12 @@ namespace Torlando.SquadTracker
             );
             ToggleSquadInterface.Value.BlockSequenceFromGw2 = true;
             ToggleSquadInterface.Value.Enabled = true;
+            
+            PrioritizeBoonsWhenSorting = settings.DefineSetting(
+                "PrioritizeBoonsWhenSorting",
+                true, () => "Prioritize boons when sorting",
+                () => "Players with boons will be placed first in the subgroups."
+            );
 
             SquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
             SquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
@@ -134,6 +141,7 @@ namespace Torlando.SquadTracker
             SquadInterfaceEnable.SettingChanged += EnableSquadInterface;
             SquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
             ToggleSquadInterface.Value.Activated += UpdateToggleSquadInterface;
+            PrioritizeBoonsWhenSorting.SettingChanged += UpdateBoonPrioritization;
         }
 
        
@@ -220,6 +228,7 @@ namespace Torlando.SquadTracker
             UpdateSquadInterfaceSize();
             UpdateSquadInterfaceMoving();
             EnableSquadInterface();
+            UpdateBoonPrioritization();
 
             _bridgeHandler = new Handler();
             _playersManager = new PlayersManager(_bridgeHandler);
@@ -297,6 +306,7 @@ namespace Torlando.SquadTracker
             SquadInterfaceEnable.SettingChanged -= EnableSquadInterface;
             SquadInterfaceMoving.SettingChanged -= UpdateSquadInterfaceMoving;
             ToggleSquadInterface.Value.Activated -= UpdateToggleSquadInterface;
+            PrioritizeBoonsWhenSorting.SettingChanged -= UpdateBoonPrioritization;
             
             GameService.Overlay.BlishHudWindow.RemoveTab(_newTab);
         }
@@ -325,6 +335,11 @@ namespace Torlando.SquadTracker
         {
             _squadInterfaceView.Visible = SquadInterfaceEnable.Value;
             _squadInterfaceShouldShow.Value = _squadInterfaceView.Visible;
+        }
+        
+        private void UpdateBoonPrioritization(object sender = null, ValueChangedEventArgs<bool> e = null)
+        {
+            _squadInterfaceView.OnBoonPrioritizeChange();
         }
 
         private void UpdateToggleSquadInterface(object sender = null, EventArgs e = null)

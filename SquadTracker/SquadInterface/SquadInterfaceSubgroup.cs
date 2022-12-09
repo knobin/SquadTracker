@@ -25,6 +25,10 @@ namespace Torlando.SquadTracker.SquadInterface
         private readonly ICollection<Role> _roles;
 
         private bool _isUpdatingMenu = false;
+        
+        private uint _rowCount = 0;
+        private uint _tileSpacing = 0;
+        private Point _tileStartPoint = new Point(0, 0);
 
         public SquadInterfaceSubgroup(uint subgroupNumber, Color bgColor, Color hoverColor, ICollection<Role> roles)
         {
@@ -41,11 +45,15 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private static int Compare(SquadInterfaceTile t1, SquadInterfaceTile t2)
         {
-            return SquadPlayerSort.Compare(t1.Player, t2.Player);
+            return SquadPlayerSort.Compare(t1.Player, t2.Player, Module.PrioritizeBoonsWhenSorting.Value);
         }
 
         public void UpdateTileSizes(int width, int textWidth, int ypadding, Point tileSize, uint rowCount, uint tileSpacing)
-        {   
+        {
+            _rowCount = rowCount;
+            _tileSpacing = tileSpacing;
+            _tileStartPoint = new Point(textWidth, ypadding);
+            
             var numberTextSize = _font.MeasureString(Number.ToString());
             _numberTextRect.Width = (int)numberTextSize.Width;
             _numberTextRect.Height = (int)numberTextSize.Height;
@@ -78,6 +86,31 @@ namespace Torlando.SquadTracker.SquadInterface
             size.Y += ypadding;
             _numberTextRect.Y = (size.Y - (int)numberTextSize.Height) / 2;
             Size = size;
+        }
+
+        public void UpdateTilePositions()
+        {
+            // Assumes that the tiles already have valid positions.
+            // This function will only re-order the tiles and not resize them.
+            
+            var tiles = _children.OfType<SquadInterfaceTile>().ToList();
+            tiles.Sort(Compare);
+            
+            var point = _tileStartPoint;
+            int currentRowCount = 1;
+
+            for (int i = 0; i < tiles.Count; i++)
+            {
+                tiles[i].Location = point;
+                point.X += tiles[i].Size.X + (int)_tileSpacing;
+
+                if (++currentRowCount > _rowCount)
+                {
+                    point.X = _tileStartPoint.X;
+                    point.Y += tiles[i].Size.Y + (int)_tileSpacing;
+                    currentRowCount = 1;
+                }
+            }
         }
 
         public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)

@@ -51,11 +51,16 @@ namespace Torlando.SquadTracker.SearchPanel
             _squadMembersPanel.Parent = null;
             _squadMembersPanel.Dispose();
         }
+        
+        private static int PlayerDisplayCompareHelper(PlayerDisplay pd1, PlayerDisplay pd2)
+        {
+            return SquadPlayerSort.Compare(pd1, pd2, Module.PrioritizeBoonsWhenSorting.Value);
+        }
 
         public void Sort(Dictionary<string, int> order)
         {
             if (_squadMembersPanel.Visible)
-                _squadMembersPanel.SortChildren<PlayerDisplay>(SquadPlayerSort.Compare);
+                _squadMembersPanel.SortChildren<PlayerDisplay>(PlayerDisplayCompareHelper);
         }
 
         public bool Exists(string accountName)

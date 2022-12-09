@@ -115,7 +115,7 @@ namespace Torlando.SquadTracker.SquadPanel
 
         private static int Compare(PlayerDisplay pd1, PlayerDisplay pd2)
         {
-            return SquadPlayerSort.Compare(pd1, pd2);
+            return SquadPlayerSort.Compare(pd1, pd2, Module.PrioritizeBoonsWhenSorting.Value);
         }
         
         public bool Exists(string accountName)

@@ -33,12 +33,17 @@ namespace Torlando.SquadTracker.SquadPanel
             _squad = _squadManager.GetSquad();
         }
 
+        private static int PlayerCompareHelper(Player player1, Player player2)
+        {
+            return SquadPlayerSort.Compare(player1, player2, Module.PrioritizeBoonsWhenSorting.Value);
+        }
+
         protected override void UpdateView()
         {
             Logger.Info("Updating SquadPanelPresenter");
 
             var squad = _squad.CurrentMembers.ToList();
-            squad.Sort(SquadPlayerSort.Compare);
+            squad.Sort(PlayerCompareHelper);
             
             for (var i = 0; i < squad.Count; ++i)
             {

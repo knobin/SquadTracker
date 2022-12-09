@@ -66,6 +66,10 @@ namespace Torlando.SquadTracker.SquadPanel
                 Text = $"{_accountName}\nSubgroup: {_subgroup}";
         }
 
+        public ref List<RoleImage> RoleIcons()
+        {
+            return ref _roleIcons;
+        }
         private List<RoleImage> _roleIcons = new List<RoleImage>();
 
         public delegate void RoleRemovedHandler(PlayerDisplay display, Role role);
