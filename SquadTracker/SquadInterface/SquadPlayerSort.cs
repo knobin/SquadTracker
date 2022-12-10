@@ -52,12 +52,12 @@ namespace Torlando.SquadTracker.SquadInterface
                 else if (player1.Roles.Count == 0 && player2.Roles.Count > 0)
                     return 1;
             }
+
+            if (player1.Role != player2.Role)
+                return player1.Role.CompareTo(player2.Role);
             
             if (player1.IsInInstance != player2.IsInInstance)
                 return player2.IsInInstance.CompareTo(player1.IsInInstance);
-            
-            if (player1.Role != player2.Role)
-                return player1.Role.CompareTo(player2.Role);
             
             if (player1.IsSelf)
                 return -1;
@@ -99,12 +99,12 @@ namespace Torlando.SquadTracker.SquadInterface
                 else if (pd1.RoleIcons().Count == 0 && pd2.RoleIcons().Count > 0)
                     return 1;
             }
+
+            if (pd1.Role != pd2.Role)
+                return pd1.Role.CompareTo(pd2.Role);
             
             if (pd1.IsInInstance != pd2.IsInInstance)
                 return pd2.IsInInstance.CompareTo(pd1.IsInInstance);
-            
-            if (pd1.Role != pd2.Role)
-                return pd1.Role.CompareTo(pd2.Role);
             
             if (pd1.IsSelf)
                 return -1;

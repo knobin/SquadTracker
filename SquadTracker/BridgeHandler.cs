@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.IO.Pipes;
 using System.Security.Principal;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BridgeHandler
 {
@@ -318,6 +319,8 @@ namespace BridgeHandler
             // Read BridgeInfo.
             var pipeData = ReadFromPipe(tData.ClientStream);
             var stringData = Encoding.UTF8.GetString(pipeData.Data, 0, pipeData.Count);
+            if (stringData.IsNullOrEmpty())
+                return 3;
             var msg = Newtonsoft.Json.Linq.JObject.Parse(stringData);
             pipeData.Data = null;
             pipeData.Count = 0;
