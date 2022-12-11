@@ -1,5 +1,4 @@
-﻿using System;
-using Blish_HUD;
+﻿using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
@@ -7,7 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Linq;
-using Gw2Sharp.WebApi.V2.Clients;
+using Microsoft.IdentityModel.Tokens;
 using MonoGame.Extended.BitmapFonts;
 using Torlando.SquadTracker.RolesScreen;
 
@@ -24,7 +23,6 @@ namespace Torlando.SquadTracker.SquadInterface
 
             _iconsManager = playerIconsManager;
             _roles = roles;
-            _activeBackgroundColor = _bgColor;
             _tileLoadedTexture = squad;
             GenerateResizeArrow(_resizeArrowSize.X, _resizeArrowSize.Y, Color.LightGray);
             
@@ -60,13 +58,15 @@ namespace Torlando.SquadTracker.SquadInterface
         private readonly ICollection<Role> _roles;
 
         private readonly Color _bgColor = new Color(0, 0, 0, 25);
-        private readonly Color _barColor = new Color(14, 16, 18, 125);
+        private readonly Color _barColor = new Color(18, 20, 22, 125);
         private readonly Color _hoverColor = new Color(5, 5, 5, 75);
         private readonly Color _borderColor = new Color(6, 7, 8, 180);
         private readonly Color _subgroupHoverColor = new Color(0, 0, 0, 100);
         private readonly Color _subgroupColor1 = new Color(20, 20, 20, 50);
         private readonly Color _subgroupColor2 = new Color(30, 30, 30, 50);
-        private Color _activeBackgroundColor;
+        private readonly Color _searchBackgroundColor = new Color(20, 20, 20, 50);
+        private readonly Color _searchFocusedColor = new Color(15, 15, 15, 225);
+        private readonly Color _searchHoverColor = new Color(25, 25, 25, 175);
 
         private readonly AsyncTexture2D _tileLoadedTexture;
         private readonly PlayerIconsManager _iconsManager;
@@ -80,7 +80,7 @@ namespace Torlando.SquadTracker.SquadInterface
         private uint _tilesPerRow = 5;
 
         private Point _minSize = new Point(40, 80);
-        private uint _barHeight = 0;
+        private uint _barHeight;
         private const uint BarHeightBig = 42;
         private const uint BarHeightSmall = 34;
 
@@ -89,8 +89,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private AsyncTexture2D _resizeArrowTexture;
         private readonly Point _resizeArrowSize = new Point(20, 20);
-        private bool _paintResizeArrow;
-
+        
         private readonly Label _errorMessage;
         
         private readonly BitmapFont _font;
@@ -98,6 +97,9 @@ namespace Torlando.SquadTracker.SquadInterface
         
         private readonly TextBox _searchbar;
         private string _filterInput = "";
+        private string _filterMatchCountStr = "";
+        private int _filterMatchCountStrWidth = 0;
+        private int _filterMatchCountStrHeight = 0;
 
         private void GenerateResizeArrow(int width, int height, Color color)
         {
@@ -137,11 +139,6 @@ namespace Torlando.SquadTracker.SquadInterface
             _errorMessage.Text = "";
         }
 
-        private Point ContentSize()
-        {
-            return new Point(Size.X, Size.Y - (int)_barHeight);
-        }
-
         public void OnRoleCollectionUpdate()
         {
             var tiles = _tiles.ToList();
@@ -179,8 +176,9 @@ namespace Torlando.SquadTracker.SquadInterface
                         else
                         {
                             foreach (var t in _tiles)
-                                t.Visible = true;
+                                t.Opacity = 1.0f;
                             _filterInput = "";
+                            _filterMatchCountStr = "";
                         }
                             
                     }
@@ -190,24 +188,26 @@ namespace Torlando.SquadTracker.SquadInterface
                 if (matches != null)
                 {
                     // Do stuff with tiles here.
-                    
                     foreach (var t in _tiles)
-                        t.Visible = matches.Contains(t);
-                    
+                        t.Opacity = matches.Contains(t) ? 1.0f : 0.4f;
                     _filterInput = searchInput;
+                    _filterMatchCountStr = matches.Count.ToString() + "/";
+                    var strSize = _font.MeasureString(_filterMatchCountStr);
+                    _filterMatchCountStrWidth = (int)strSize.Width;
+                    _filterMatchCountStrHeight = (int)strSize.Height;
                 }
             }
             else
             {
                 // Reset tiles here.
                 foreach (var t in _tiles)
-                    t.Visible = true;
-                
+                    t.Opacity = 1.0f;
                 _filterInput = "";
+                _filterMatchCountStr = "";
             }
         }
 
-        private void TilesModifedApplyFilter()
+        private void TilesModifiedApplyFilter()
         {
             Filter(_filterInput);
         }
@@ -311,7 +311,18 @@ namespace Torlando.SquadTracker.SquadInterface
             spriteBatch.DrawStringOnCtrl(this, _tiles.Count.ToString(), _font, rect, Color.White);
             
             // Search.
-            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(_searchbar.Location, _searchbar.Size), _subgroupColor1);
+            if (!_filterMatchCountStr.IsNullOrEmpty())
+            {
+                rect.X -= _filterMatchCountStrWidth;
+                rect.Y = (bounds.Height - _filterMatchCountStrHeight) / 2;
+                spriteBatch.DrawStringOnCtrl(this, _filterMatchCountStr, _font, rect, Color.White);
+            }
+            if (_searchbar.Focused)
+                spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(_searchbar.Location, _searchbar.Size), _searchFocusedColor);
+            else if (_searchbar.MouseOver)
+                spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(_searchbar.Location, _searchbar.Size), _searchHoverColor);
+            else
+                spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(_searchbar.Location, _searchbar.Size), _searchBackgroundColor);
             var inputBounds = new Rectangle(_searchbar.Location, _searchbar.Size);
             PaintBorder(spriteBatch, inputBounds, _borderColor, 1);
 
@@ -324,16 +335,13 @@ namespace Torlando.SquadTracker.SquadInterface
 
         public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)
         {
-            var pos = new Point(0, 0);
-            
-            var barSize = new Point(Size.X, (int)_barHeight);
-            var barBounds = new Rectangle(pos, barSize);
-            PaintBar(spriteBatch, barBounds);
-            
-            pos.Y += barSize.Y;
-            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(pos, ContentSize()), _activeBackgroundColor);
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, bounds, MouseOver ? _hoverColor : _bgColor);
 
-            if (!_paintResizeArrow) return;
+            var barSize = new Point(Size.X, (int)_barHeight);
+            var barBounds = new Rectangle(Point.Zero, barSize);
+            PaintBar(spriteBatch, barBounds);
+
+            if (!MouseOver) return;
             var arrow = new Vector2(Location.X + Size.X - _resizeArrowSize.X, Location.Y + Size.Y - _resizeArrowSize.Y);
             spriteBatch.Draw(_resizeArrowTexture, arrow, Color.White);
         }
@@ -405,22 +413,6 @@ namespace Torlando.SquadTracker.SquadInterface
             base.OnLeftMouseButtonPressed(e);
         }
 
-        protected override void OnMouseEntered(MouseEventArgs e)
-        {
-            _paintResizeArrow = true;
-            _activeBackgroundColor = _hoverColor;
-
-            base.OnMouseEntered(e);
-        }
-
-        protected override void OnMouseLeft(MouseEventArgs e)
-        {
-            _paintResizeArrow = false;
-            _activeBackgroundColor = _bgColor;
-
-            base.OnMouseLeft(e);
-        }
-
         public override void UpdateContainer(GameTime gameTime)
         {
             if (!(_dragMoving || _dragResizing))
@@ -467,7 +459,6 @@ namespace Torlando.SquadTracker.SquadInterface
                     if ((Size.X + nOffset.X >= _minSize.X) && (Size.Y + nOffset.Y >= _minSize.Y))
                     {
                         Size += nOffset;
-                        _activeBackgroundColor = _hoverColor;
                         UpdateTilePositions();
                     }
                 }
@@ -531,7 +522,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
             _tiles.Add(tile);
             UpdateTilePositions();
-            TilesModifedApplyFilter();
+            TilesModifiedApplyFilter();
         }
 
         public void Remove(string accountName)
@@ -551,7 +542,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
             _tiles.RemoveAt(index);
             UpdateTilePositions();
-            TilesModifedApplyFilter();
+            TilesModifiedApplyFilter();
         }
 
         public void Update(Player player)
@@ -590,7 +581,7 @@ namespace Torlando.SquadTracker.SquadInterface
             _tiles[index].UpdateInformation();
 
             UpdateTilePositions();
-            TilesModifedApplyFilter();
+            TilesModifiedApplyFilter();
         }
 
         private void GenerateSizes()
@@ -691,8 +682,7 @@ namespace Torlando.SquadTracker.SquadInterface
 
             for (var i = 0; i < subgroups.Count; i++)
             {
-                var color = (i % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
-                subgroups[i].ForegroundColor = color;
+                subgroups[i].ForegroundColor = (i % 2 == 0) ? _subgroupColor1 : _subgroupColor2;
                 subgroups[i].UpdateTileSizes(Size.X, textWidth - paddingX, paddingY, _tileSize, _tilesPerRow, TileSpacing);
                 subgroups[i].Location = point;
                 point.Y += subgroups[i].Size.Y;
