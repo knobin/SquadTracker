@@ -83,17 +83,20 @@ namespace Torlando.SquadTracker.SquadPanel
             BridgeError?.Invoke(message);
         }
 
-        public void BridgeConnectionInfo(ConnectionInfo info)
+        public void ConnectionStatusInfo(ConnectionStatus info)
         {
-            if (info.Info.majorApiVersion != Handler.SupportedMajorVersion)
+            if (info.majorApiVersion != Handler.SupportedMajorVersion)
             {
                 // Major API version is incompatible here.
-                var errMsg = "arcdps_bridge major API version " + info.Info.majorApiVersion.ToString() + 
-                    " is not compatible with BridgeHandler major API version " + Handler.SupportedMajorVersion.ToString() + ".";
+                var errMsg = "arcdps_bridge major API version " + info.majorApiVersion.ToString() + 
+                             " is not compatible with BridgeHandler major API version " + Handler.SupportedMajorVersion.ToString() + ".";
                 OnBridgeError(errMsg);
                 return;
             }
-
+        }
+        
+        public void BridgeConnectionInfo(ConnectionInfo info)
+        {
             // Getting this function call means that arcdps_bridge has loaded.
             // Both combat and extras can be disabled in the arcdps_bridge config file.
             // For SquadTracker we need both to be loaded.

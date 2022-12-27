@@ -26,18 +26,10 @@ namespace Torlando.SquadTracker.SquadInterface
             DisplayHeightThreshold = displayHeightThreshold;
             _roles = roles;
 
-            if (player.IsSelf || Player.Role == 0)
-                BorderColorOuter = new Color(211, 211, 211, 255);
-
-            if (Player.Role == 1)
-                BorderColorOuter = new Color(180, 180, 180, 255);
-
-            if (player.Tag != null)
-                BorderColorOuter = RandomColorGenerator.Generate(player.Tag);
-
             _player.OnRoleUpdated += OnPlayerRoleUpdate;
             
-            UpdateInformation();
+            OnPlayerRoleUpdate(_player);
+            // UpdateInformation();
             // SetDisplayName();
             // SetTooltipText(_player);
         }
@@ -74,6 +66,17 @@ namespace Torlando.SquadTracker.SquadInterface
 
         private void OnPlayerRoleUpdate(Player player)
         {
+            UpdateInformation();
+        }
+        
+        public void UpdateInformation()
+        {
+            UpdateRoleInformation();
+            UpdateDisplayedInformation();
+        }
+        
+        private void UpdateRoleInformation()
+        {
             RoleIcon1 = null;
             RoleIcon2 = null;
 
@@ -90,15 +93,22 @@ namespace Torlando.SquadTracker.SquadInterface
                 if (assignedRoles.Count > 1)
                     RoleIcon2 = assignedRoles.ElementAt(1).Icon;
             }
+            
+            if (Player.IsSelf || Player.Role == 0)
+                BorderColorOuter = new Color(211, 211, 211, 255);
 
-            UpdateInformation();
+            if (Player.Role == 1)
+                BorderColorOuter = new Color(180, 180, 180, 255);
+
+            if (Player.Tag != null)
+                BorderColorOuter = RandomColorGenerator.Generate(Player.Tag);
 
             // Tell parent subgroup to reorder if necessary.  
             if (Parent is SquadInterfaceSubgroup sub)
                 sub.UpdateTilePositions();
         }
         
-        public void UpdateInformation()
+        private void UpdateDisplayedInformation()
         {
             if (_player == null) return;
             

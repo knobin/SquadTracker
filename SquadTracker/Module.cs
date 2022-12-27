@@ -258,11 +258,14 @@ namespace Torlando.SquadTracker
                 name: "Squad Tracker Tab"
             );
 
-            _bridgeHandler.OnConnectionInfo += (info) => _squadManager.BridgeConnectionInfo(info);
-            _bridgeHandler.OnConnectionUpdate += (connected) => _squadManager.SetBridgeConnectionStatus(connected);
-
-            _bridgeHandler.OnConnectionInfo += (info) => Logger.Info("[Bridge Information] CombatEnabled: {}, ExtrasEnabled: {}, ExtrasFound: {}, SquadEnabled: {}", info.CombatEnabled, info.ExtrasEnabled, info.ExtrasFound, info.SquadEnabled);
-
+            _bridgeHandler.OnBridgeInfo += (info) => _squadManager.BridgeConnectionInfo(info);
+            _bridgeHandler.OnConnect += () => _squadManager.SetBridgeConnectionStatus(true);
+            _bridgeHandler.OnDisconnect += () => _squadManager.SetBridgeConnectionStatus(false);
+            _bridgeHandler.OnBridgeInfo += (info) => Logger.Info("[Bridge Information] CombatEnabled: {}, ExtrasEnabled: {}, ExtrasFound: {}, SquadEnabled: {}", info.CombatEnabled, info.ExtrasEnabled, info.ExtrasFound, info.SquadEnabled);
+            _bridgeHandler.OnConnectInfo += (info) => Logger.Info("[ArcBridge Connection Status] Version: {}, API version: {}.{}, Success: {}, Err: {}", info.version, info.majorApiVersion, info.minorApiVersion, info.success, info.error);
+            _bridgeHandler.OnConnectInfo += (info) => _squadManager.ConnectionStatusInfo(info);
+            
+            
             var sub = new Subscribe() { Squad = true, Protocol = MessageProtocol.Serial };
             _bridgeHandler.Start(sub);
 

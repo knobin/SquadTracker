@@ -23,18 +23,26 @@ namespace BridgeHandler
 
     internal class BridgeInfo
     {
-        public string version { get; set; }
         public string extrasVersion { get; set; }
         public string arcVersion { get; set; }
         public bool arcLoaded { get; set; }
         public bool extrasFound { get; set; }
         public bool extrasLoaded { get; set; }
         public UInt64 validator { get; set; }
-        public UInt32 majorApiVersion { get; set; }
-        public UInt32 minorApiVersion { get; set; }
+        
         public UInt32 extrasInfoVersion { get; set; }
     }
 
+    internal class ConnectionStatus
+    {
+        public string version { get; set; }
+        public UInt32 majorApiVersion { get; set; }
+        public UInt32 minorApiVersion { get; set; }
+        public BridgeInfo Info { get; set; }
+        public bool success { get; set; }
+        public string error { get; set; }
+    }
+    
     internal class ConnectionInfo
     {
         public bool CombatEnabled { get; set; }
@@ -145,24 +153,25 @@ namespace BridgeHandler
             None        = 0,
 
             // Info types.
-            BridgeInfo  = 1,
-            Status      = 2,
-            Closing     = 3,
+            ConnectionStatus  = 1,
+            BridgeInfo  = 2,
+            Status      = 3,
+            Closing     = 4,
 
             // ArcDPS combat api types.
-            CombatEvent = 4,
+            CombatEvent = 5,
 
             // Extras event types.
-            ExtrasSquadUpdate = 5,
-            // ExtrasLanguageChanged = 6,   // TODO
-            // ExtrasKeyBindChanged = 7,    // TODO
-            // ExtrasChatMessage = 8,       // TODO
+            ExtrasSquadUpdate = 6,
+            // ExtrasLanguageChanged = 7,   // TODO
+            // ExtrasKeyBindChanged = 8,    // TODO
+            // ExtrasChatMessage = 9,       // TODO
 
             // Squad event types.
-            SquadStatus = 9,
-            SquadAdd    = 10,
-            SquadUpdate = 11,
-            SquadRemove = 12
+            SquadStatus = 10,
+            SquadAdd    = 11,
+            SquadUpdate = 12,
+            SquadRemove = 13
         }
 
         private struct MessageHeader
@@ -250,10 +259,13 @@ namespace BridgeHandler
         public event PlayerChange OnPlayerRemovedEvent;
 
         // Connection events.
-        public delegate void ConnectedHandler(bool connected);
+        public delegate void ConnectedHandler();
         public delegate void ConnectionInfoHandler(ConnectionInfo info);
-        public event ConnectedHandler OnConnectionUpdate;
-        public event ConnectionInfoHandler OnConnectionInfo;
+        public delegate void ConnectionStatusHandler(ConnectionStatus info);
+        public event ConnectedHandler OnConnect;
+        public event ConnectedHandler OnDisconnect;
+        public event ConnectionInfoHandler OnBridgeInfo;
+        public event ConnectionStatusHandler OnConnectInfo;
 
         // ArcDPS event.
         public event CombatMessage OnCombatEvent;
@@ -326,17 +338,22 @@ namespace BridgeHandler
             pipeData.Count = 0;
 
             var header = ParseMessageHeader(msg);
-            if (header.category != MessageCategory.Info || header.type != MessageType.BridgeInfo)
+            if (header.category != MessageCategory.Info || header.type != MessageType.ConnectionStatus)
                 return 1;
 
-            var info = msg["data"]?.ToObject<BridgeInfo>();
-            if (info == null)
+            var connectionInfo = msg["data"]?.ToObject<ConnectionStatus>();
+            if (connectionInfo == null)
                 return 1;
             
-            HandleBridgeInfo(info, tData);
+            tData.Handle.OnConnectInfo?.Invoke(connectionInfo);
 
-            if (info.majorApiVersion != SupportedMajorVersion)
+            if (connectionInfo.majorApiVersion != SupportedMajorVersion)
                 return 2;
+            
+            HandleBridgeInfo(connectionInfo.Info, tData);
+
+            if (!connectionInfo.success)
+                return 4;
 
             // Send subscribe data to server.
             var subscribe = tData.EnabledCategories;
@@ -406,7 +423,7 @@ namespace BridgeHandler
                 }
 
                 // Bridge is connected here, invoke callback.
-                tData.Handle.OnConnectionUpdate?.Invoke(true);
+                tData.Handle.OnConnect?.Invoke();
 
                 while (tData.Run && tData.ClientStream.IsConnected)
                 {
@@ -423,7 +440,7 @@ namespace BridgeHandler
                 tData.Connected = false;
 
                 // Bridge disconnected here, invoke callback.
-                tData.Handle.OnConnectionUpdate?.Invoke(false);
+                tData.Handle.OnDisconnect?.Invoke();
             }
             
             // Thread is ending, close stream if open.
@@ -433,7 +450,7 @@ namespace BridgeHandler
                 tData.ClientStream = null;
                 tData.Connected = false;
                 // Bridge disconnected here, invoke callback.
-                tData.Handle.OnConnectionUpdate?.Invoke(false);
+                tData.Handle.OnDisconnect?.Invoke();
             }
         }
 
@@ -443,7 +460,7 @@ namespace BridgeHandler
 
             for (var i = index; i < data.Length; i++)
             {
-                if (data[i] == 0) // Null teminator found.
+                if (data[i] == 0) // Null terminator found.
                     break;
                 ++count;
             }
@@ -557,12 +574,9 @@ namespace BridgeHandler
             {
                 Data = new BridgeInfo()
                 {
-                    version = version.Data,
                     extrasVersion = extras_version.Data,
                     arcVersion = arc_version.Data,
                     validator = validator,
-                    majorApiVersion = majorApiVersion,
-                    minorApiVersion = minorApiVersion,
                     extrasInfoVersion = extrasInfoVersion,
                     arcLoaded = BitConverter.ToBoolean(data, offset),
                     extrasFound = BitConverter.ToBoolean(data, offset + 1),
@@ -706,7 +720,7 @@ namespace BridgeHandler
                 SquadEnabled = bInfo.arcLoaded && bInfo.extrasLoaded,
                 Info = bInfo
             };
-            tData.Handle.OnConnectionInfo?.Invoke(info);
+            tData.Handle.OnBridgeInfo?.Invoke(info);
         }
 
         private static void HandleSquadEvent(PlayerInfoEntry entry, MessageType type, ThreadData tData)
