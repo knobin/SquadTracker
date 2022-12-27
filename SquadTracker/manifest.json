@@ -2,14 +2,14 @@
   "name": "Squad Tracker",
   "version": "0.4.3",
   "namespace": "Torlando.SquadTracker",
-  "package": "SquadTracker.dll",
+  "package": "SquadTracker_ArcBridge.dll",
   "manifest_version": 1,
 
-  "description": "Tracks current and former squad members, and lets you assign roles to them.",
+  "description": "Tracks current and former squad members, and lets you assign roles to them. Using the arcdps_bridge extension.",
   "dependencies": {
     "bh.blishhud": ">=0.11.6"
   },
-  "url": "https://github.com/tcwatson/SquadTracker",
+  "url": "https://github.com/knobin/SquadTracker",
   "contributors": [
     {
       "name": "Torlando",
@@ -24,6 +24,6 @@
       "username": "Knobin.5930"
     }
   ],
-  "directories": [ "squadtracker" ],
+  "directories": [ "squadtracker_arcbridge" ],
   "location":  ""
 }

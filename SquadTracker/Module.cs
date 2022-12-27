@@ -24,7 +24,7 @@ namespace Torlando.SquadTracker
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class Module : Blish_HUD.Modules.Module
     {
-        private const string MODULE_FOLDER_NAME = "squadtracker";
+        private const string MODULE_FOLDER_NAME = "squadtracker_arcbridge";
 
         private static readonly Logger Logger = Logger.GetLogger<Module>();
 

@@ -8,7 +8,7 @@
     <ProjectGuid>{4F5D4893-373F-42F5-9482-CBDC8F8A3449}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Torlando.SquadTracker</RootNamespace>
-    <AssemblyName>SquadTracker</AssemblyName>
+    <AssemblyName>SquadTracker_ArcBridge</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
