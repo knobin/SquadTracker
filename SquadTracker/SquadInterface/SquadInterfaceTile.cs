@@ -1,4 +1,5 @@
-﻿using Blish_HUD;
+﻿using System;
+using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
@@ -7,6 +8,8 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Converters;
 using Torlando.SquadTracker.Helpers;
 using Torlando.SquadTracker.RolesScreen;
 
@@ -27,7 +30,18 @@ namespace Torlando.SquadTracker.SquadInterface
             _roles = roles;
 
             _player.OnRoleUpdated += OnPlayerRoleUpdate;
-            
+
+            if (player.JoinTime != 0)
+            {
+                _timeJoined = player.JoinTime;
+                _timeJoinedStr = UnixTimeStampToDateTime(player.JoinTime).ToString("HH:mm:ss");
+            }
+            else
+            {
+                _timeJoined = 0;
+                _timeJoinedStr = DateTime.Now.ToString("HH:mm:ss");
+            }
+
             OnPlayerRoleUpdate(_player);
             // UpdateInformation();
             // SetDisplayName();
@@ -47,6 +61,8 @@ namespace Torlando.SquadTracker.SquadInterface
         private Player _player;
 
         private string _displayName;
+        private string _timeJoinedStr;
+        private long _timeJoined;
         private int DisplayHeightThreshold { get; set; }
 
         private AsyncTexture2D ForegroundTexture { get; set; } = null;
@@ -73,6 +89,13 @@ namespace Torlando.SquadTracker.SquadInterface
         {
             UpdateRoleInformation();
             UpdateDisplayedInformation();
+        }
+        
+        private static DateTime UnixTimeStampToDateTime(double timestamp)
+        {
+            var dt = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dt = dt.AddSeconds(timestamp).ToLocalTime();
+            return dt;
         }
         
         private void UpdateRoleInformation()
@@ -222,6 +245,17 @@ namespace Torlando.SquadTracker.SquadInterface
             Menu = null;
         }
 
+        private string GetTimeJoinedString()
+        {
+            if (_player.JoinTime != _timeJoined)
+            {
+                _timeJoined = _player.JoinTime;
+                _timeJoinedStr = UnixTimeStampToDateTime(_player.JoinTime).ToString("HH:mm:ss");
+            }
+
+            return _timeJoinedStr;
+        }
+
         private void PaintBorder(SpriteBatch spriteBatch, Rectangle bounds, Color color, int thickness)
         {
             var rect = new Rectangle(Point.Zero, Point.Zero);
@@ -282,7 +316,10 @@ namespace Torlando.SquadTracker.SquadInterface
                 4 => "Applied",
                 _ => "none"
             };
-            text += ")";
+            text += ") | Joined: " + GetTimeJoinedString();
+
+            if (_timeJoined == 0)
+                text += " (est)";
 
             var character = Player.CurrentCharacter;
             if (character != null && character.Name != "")

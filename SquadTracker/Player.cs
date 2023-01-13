@@ -15,6 +15,7 @@ namespace Torlando.SquadTracker
         public bool IsSelf { get; set; }
         public byte Role { get; set; } = 5;
         public uint Subgroup { get; set; }
+        public long JoinTime { get; set; }
         public IReadOnlyCollection<Role> Roles => _roles;
         public string Tag { get; set; } = null;
         

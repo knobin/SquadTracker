@@ -101,6 +101,7 @@ namespace Torlando.SquadTracker
                 player.IsInInstance = playerInfo.inInstance;
                 player.Subgroup = playerInfo.subgroup;
                 player.Role = playerInfo.role;
+                player.JoinTime = playerInfo.joinTime;
             }
             else
             {
@@ -109,7 +110,8 @@ namespace Torlando.SquadTracker
                 {
                     IsInInstance = playerInfo.inInstance,
                     Role = playerInfo.role,
-                    IsSelf = playerInfo.self
+                    IsSelf = playerInfo.self,
+                    JoinTime = playerInfo.joinTime
                 };
                 player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
                 _players.Add(player.AccountName, player);
@@ -206,6 +208,7 @@ namespace Torlando.SquadTracker
                         player.IsInInstance = playerInfo.inInstance;
                         player.Subgroup = playerInfo.subgroup;
                         player.Role = playerInfo.role;
+                        player.JoinTime = playerInfo.joinTime;
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
@@ -223,6 +226,7 @@ namespace Torlando.SquadTracker
                         player.IsInInstance = playerInfo.inInstance;
                         player.Subgroup = playerInfo.subgroup;
                         player.Role = playerInfo.role;
+                        player.JoinTime = playerInfo.joinTime;
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
@@ -239,6 +243,7 @@ namespace Torlando.SquadTracker
                         player.Subgroup = playerInfo.subgroup;
                         player.IsInInstance = playerInfo.inInstance;
                         player.Role = playerInfo.role;
+                        player.JoinTime = playerInfo.joinTime;
                         this.PlayerUpdated?.Invoke(player);
                     }
                 }
