@@ -70,6 +70,8 @@ namespace Torlando.SquadTracker.SquadPanel
 
             if (!_squadManager.IsBridgeConnected())
                 OnBridgeError(_squadManager.LastBridgeError());
+
+            View.OnRoleRemoved += OnPlayerDisplayRoleRemoved;
         }
 
         protected override void Unload()
@@ -85,6 +87,8 @@ namespace Torlando.SquadTracker.SquadPanel
 
             _squadManager.BridgeConnected -= OnBridgeConnected;
             _squadManager.BridgeError -= OnBridgeError;
+            
+            View.OnRoleRemoved -= OnPlayerDisplayRoleRemoved;
         }
 
         private void OnBridgeConnected()
@@ -126,9 +130,18 @@ namespace Torlando.SquadTracker.SquadPanel
             View.OnRoleUpdate(player);
         }
 
+        private void OnPlayerDisplayRoleRemoved(string accountName, Role role)
+        {
+            var player = _squad.CurrentMembers.FirstOrDefault(p => p.AccountName == accountName);
+            if (player == null) player = _squad.FormerMembers.FirstOrDefault(p => p.AccountName == accountName);
+            if (player == null) return;
+            
+            player.RemoveRole(role);
+        }
+
         private void UpdatePlayer(Player player)
         {
-            Character character = player.CurrentCharacter;
+            var character = player.CurrentCharacter;
             var icon = (character != null) ? _iconsManager.GetSpecializationIcon(character.Profession, character.Specialization) : null;
 
             View.UpdatePlayer(player, icon, _roles, _squad.GetRoles(player.AccountName));

@@ -115,6 +115,7 @@ namespace Torlando.SquadTracker.SearchPanel
             _queue.Start();
 
             _searchbar.TextChanged += OnSearchInput;
+            View.OnRoleRemoved += OnPlayerDisplayRoleRemoved;
         }
 
         protected override void Unload()
@@ -127,6 +128,7 @@ namespace Torlando.SquadTracker.SearchPanel
             _squadManager.PlayerLeftSquad -= RemovePlayer;
             _squadManager.PlayerUpdateSquad -= UpdatePlayer;
             _squadManager.ClearSquad -= ClearPlayers;
+            View.OnRoleRemoved -= OnPlayerDisplayRoleRemoved;
         }
 
         private void ClearPlayers()
@@ -153,6 +155,27 @@ namespace Torlando.SquadTracker.SearchPanel
                         Filter(_searchbar.Text);
                     }
                 }
+                player.OnRoleUpdated += OnRoleUpdate;
+            });
+        }
+        
+        private void OnRoleUpdate(Player player)
+        {
+            _queue.Enqueue(() =>
+            {
+                View.OnRoleUpdate(player);
+            });
+        }
+        
+        private void OnPlayerDisplayRoleRemoved(string accountName, Role role)
+        {
+            _queue.Enqueue(() =>
+            {
+                var player = _squad.CurrentMembers.FirstOrDefault(p => p.AccountName == accountName);
+                if (player == null) player = _squad.FormerMembers.FirstOrDefault(p => p.AccountName == accountName);
+                if (player == null) return;
+                
+                player.RemoveRole(role);
             });
         }
 
@@ -195,6 +218,11 @@ namespace Torlando.SquadTracker.SearchPanel
             _queue.Enqueue(() =>
             {
                 View.RemovePlayer(accountName);
+                
+                var player = _squad.CurrentMembers.FirstOrDefault(p => p.AccountName == accountName);
+                if (player == null) player = _squad.FormerMembers.FirstOrDefault(p => p.AccountName == accountName);
+                if (player == null) return;
+                player.OnRoleUpdated -= OnRoleUpdate;
             });
         }
 
