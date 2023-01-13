@@ -115,6 +115,9 @@ namespace Torlando.SquadTracker
                 };
                 player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
                 _players.Add(player.AccountName, player);
+                
+                var name = (string.IsNullOrEmpty(playerInfo.characterName)) ? playerInfo.accountName : playerInfo.characterName;
+                Module.StLogger.Info("\"{0}\" joined the squad.", name);
             }
 
             this.PlayerJoinedInstance?.Invoke(player);
@@ -169,6 +172,9 @@ namespace Torlando.SquadTracker
             playerInfo.accountName = playerInfo.accountName.TrimStart(':');
             
             Logger.Info("Removing {}", playerInfo.accountName);
+            var name = (string.IsNullOrEmpty(playerInfo.characterName)) ? playerInfo.accountName : playerInfo.characterName;
+            Module.StLogger.Info("\"{0}\" left the squad.", name);
+            
             if (playerInfo.self)
             {
                 Logger.Info("Removing self! {}. Clearing squad...", playerInfo.accountName);
@@ -189,8 +195,11 @@ namespace Torlando.SquadTracker
 
         private void OnPlayerUpdate(PlayerInfoEntry entry)
         {
+            // This function needs to be refactored.
+            
             var playerInfo = entry.player;
             playerInfo.accountName = playerInfo.accountName.TrimStart(':');
+            var subgroup = (uint)playerInfo.subgroup;
             
             Logger.Info("Update {} : {}, inInstance {}", playerInfo.accountName, playerInfo.characterName ?? "", playerInfo.inInstance);
             if (!string.IsNullOrEmpty(playerInfo.characterName))
@@ -204,6 +213,7 @@ namespace Torlando.SquadTracker
                     }
                     if (_players.TryGetValue(playerInfo.accountName, out var player))
                     {
+                        subgroup = player.Subgroup;
                         player.CurrentCharacter = (playerInfo.inInstance) ? srcCharacter : null;
                         player.IsInInstance = playerInfo.inInstance;
                         player.Subgroup = playerInfo.subgroup;
@@ -223,6 +233,7 @@ namespace Torlando.SquadTracker
                         Logger.Info("Assigning Character: {} : to user {}", playerInfo.characterName, playerInfo.accountName);
                         player.CurrentCharacter = character; // Assigns the character to known characters for player.
                         player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
+                        subgroup = player.Subgroup;
                         player.IsInInstance = playerInfo.inInstance;
                         player.Subgroup = playerInfo.subgroup;
                         player.Role = playerInfo.role;
@@ -239,6 +250,7 @@ namespace Torlando.SquadTracker
                 {
                     if (player.Subgroup != playerInfo.subgroup)
                     {
+                        subgroup = player.Subgroup;
                         player.CurrentCharacter = null;
                         player.Subgroup = playerInfo.subgroup;
                         player.IsInInstance = playerInfo.inInstance;
@@ -248,6 +260,10 @@ namespace Torlando.SquadTracker
                     }
                 }
             }
+
+            if (subgroup == playerInfo.subgroup) return;
+            var name = (string.IsNullOrEmpty(playerInfo.characterName)) ? playerInfo.accountName : playerInfo.characterName;
+            Module.StLogger.Info("Assigning \"{0}\" to subgroup {1}.", name, playerInfo.subgroup);
         }
     }
 }

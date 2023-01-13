@@ -65,6 +65,9 @@ namespace Torlando.SquadTracker.MainScreen
             _squadRolesMenu = _menuCategories.AddMenuItem("Squad Roles");
             _squadRolesMenu.ItemSelected += (o, e) => ShowView("Squad Roles");
 
+            _squadRolesMenu = _menuCategories.AddMenuItem("Log");
+            _squadRolesMenu.ItemSelected += (o, e) => ShowView("Log");
+
             _searchbar.TextChanged += Searching;
         }
 

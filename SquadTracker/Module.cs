@@ -18,6 +18,7 @@ using Torlando.SquadTracker.RolesScreen;
 using Torlando.SquadTracker.SquadInterface;
 using Torlando.SquadTracker.SquadPanel;
 using Microsoft.Xna.Framework.Input;
+using Torlando.SquadTracker.LogPanel;
 
 namespace Torlando.SquadTracker
 {
@@ -34,6 +35,7 @@ namespace Torlando.SquadTracker
         private ObservableCollection<Role> _customRoles;
         private Handler _bridgeHandler;
         private SquadInterfaceView _squadInterfaceView;
+        public static StLogger StLogger;
 
         #region Service Managers
         internal SettingsManager SettingsManager => this.ModuleParameters.SettingsManager;
@@ -220,6 +222,8 @@ namespace Torlando.SquadTracker
         /// </summary>
         protected override void OnModuleLoaded(EventArgs e)
         {
+            StLogger = new StLogger();
+            
             _squadInterfaceView = new SquadInterfaceView(_playerIconsManager, _customRoles, _squadTileTexture)
             {
                 Parent = GameService.Graphics.SpriteScreen
@@ -252,7 +256,7 @@ namespace Torlando.SquadTracker
                 icon: ContentsManager.GetTexture(@"textures\commandertag.png"),
                 viewFunc: () => {
                     var view = new MainScreenView();
-                    var presenter = new MainScreenPresenter(view, _playersManager, _squadManager, _playerIconsManager, _customRoles);
+                    var presenter = new MainScreenPresenter(view, _playersManager, _squadManager, _playerIconsManager, _customRoles, StLogger);
                     return view.WithPresenter(presenter);
                 },
                 name: "Squad Tracker Tab"
@@ -264,9 +268,8 @@ namespace Torlando.SquadTracker
             _bridgeHandler.OnBridgeInfo += (info) => Logger.Info("[Bridge Information] CombatEnabled: {}, ExtrasEnabled: {}, ExtrasFound: {}, SquadEnabled: {}", info.CombatEnabled, info.ExtrasEnabled, info.ExtrasFound, info.SquadEnabled);
             _bridgeHandler.OnConnectInfo += (info) => Logger.Info("[ArcBridge Connection Status] Version: {}, API version: {}.{}, Success: {}, Err: {}", info.version, info.majorApiVersion, info.minorApiVersion, info.success, info.error);
             _bridgeHandler.OnConnectInfo += (info) => _squadManager.ConnectionStatusInfo(info);
-            
-            
-            var sub = new Subscribe() { Squad = true, Protocol = MessageProtocol.Serial };
+
+            var sub = new Subscribe() { Extras = true, Squad = true, Protocol = MessageProtocol.Serial };
             _bridgeHandler.Start(sub);
 
             // Base handler must be called

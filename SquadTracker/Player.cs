@@ -27,6 +27,10 @@ namespace Torlando.SquadTracker
                 {
                     _roles.Add(role);
                     _roles = _roles.OrderBy(r => r.Name.ToLowerInvariant()).ToList();
+                    
+                    var name = (CurrentCharacter != null) ? CurrentCharacter.Name : AccountName;
+                    Module.StLogger.Info("Added role \"{0}\" to \"{1}\"", role.Name, name);
+                    
                     OnRoleUpdated?.Invoke(this);
                 }
             }
@@ -40,6 +44,10 @@ namespace Torlando.SquadTracker
                 {
                     _roles.Remove(role);
                     _roles = _roles.OrderBy(r => r.Name.ToLowerInvariant()).ToList();
+
+                    var name = (CurrentCharacter != null) ? CurrentCharacter.Name : AccountName;
+                    Module.StLogger.Info("Removed role \"{0}\" from \"{1}\"", role.Name, name);
+                    
                     OnRoleUpdated?.Invoke(this);
                 }
             }
@@ -48,6 +56,10 @@ namespace Torlando.SquadTracker
         public void ClearRoles()
         {
             _roles.Clear();
+            
+            var name = (CurrentCharacter != null) ? CurrentCharacter.Name : AccountName;
+            Module.StLogger.Info("Cleared roles from \"{0}\"", name);
+            
             OnRoleUpdated?.Invoke(this);
         }
 
