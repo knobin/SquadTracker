@@ -291,7 +291,7 @@ namespace Torlando.SquadTracker
                     var presenter = new MainScreenPresenter(view, _playersManager, _squadManager, _playerIconsManager, _customRoles, StLogger);
                     return view.WithPresenter(presenter);
                 },
-                name: "Squad Tracker Tab"
+                name: "Squad Tracker Tab (ArcBridge)"
             );
 
             _bridgeHandler.OnBridgeInfo += (info) => _squadManager.BridgeConnectionInfo(info);
