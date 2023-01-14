@@ -1,11 +1,11 @@
 ﻿using System;
-using BridgeHandler;
 using System.Linq;
+using Torlando.SquadTracker.ChatPanel;
 using Torlando.SquadTracker.SquadInterface;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
-    internal class SquadManager : IDisposable
+    public class SquadManager : IDisposable
     {
         public delegate void PlayerJoinedSquadHandler(Player player, bool isReturning);
         public delegate void PlayerUpdateSquadHandler(Player player);
@@ -30,11 +30,14 @@ namespace Torlando.SquadTracker.SquadPanel
         private bool _bridgeConnected = false;
         private string _bridgeError = Constants.Placeholder.BridgeHandlerErrorMessage;
 
+        private ChatLog _chatLog;
+
         public SquadManager(PlayersManager playersManager, SquadInterfaceView squadInterfaceView)
         {
             _playersManager = playersManager;
             _squadInterfaceView = squadInterfaceView;
 
+            _chatLog = new ChatLog();
             _squad = new Squad();
 
             var players = _playersManager.GetPlayers();
@@ -64,6 +67,17 @@ namespace Torlando.SquadTracker.SquadPanel
             _playersManager.PlayerClear -= OnPlayerClear;
 
             _playersManager = null;
+        }
+
+        public void HandleChatMessage(ChatMessageEvent evt)
+        {
+            _chatLog.Add(evt);
+        }
+
+        public ChatLog GetChatLog()
+        {
+            return _chatLog;
+            
         }
 
         public bool IsBridgeConnected()

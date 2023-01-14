@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using Blish_HUD;
 using Blish_HUD.Controls;
-using BridgeHandler;
 
 namespace Torlando.SquadTracker
 {
-    internal class PlayersManager  : IDisposable
+    public class PlayersManager  : IDisposable
     {
         public delegate void PlayerJoinedInstanceHandler(Player newPlayer);
         public delegate void PlayerLeftInstanceHandler(string accountName);

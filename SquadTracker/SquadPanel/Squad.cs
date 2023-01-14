@@ -4,7 +4,7 @@ using Torlando.SquadTracker.Constants;
 
 namespace Torlando.SquadTracker.SquadPanel
 {
-    internal class Squad : IDisposable
+    public class Squad : IDisposable
     {
         public ICollection<Player> CurrentMembers { get; private set; } = new HashSet<Player>();
         public ICollection<Player> FormerMembers { get; private set; } = new HashSet<Player>();

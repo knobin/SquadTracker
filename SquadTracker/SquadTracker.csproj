@@ -78,6 +78,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BridgeHandler.cs" />
+    <Compile Include="ChatPanel\ChatEntry.cs" />
+    <Compile Include="ChatPanel\ChatLog.cs" />
+    <Compile Include="ChatPanel\ChatPresenter.cs" />
+    <Compile Include="ChatPanel\ChatUserLabel.cs" />
+    <Compile Include="ChatPanel\ChatView.cs" />
     <Compile Include="Constants\Placeholder.cs" />
     <Compile Include="Helpers\IconHelper.cs" />
     <Compile Include="Helpers\RandomColorGenerator.cs" />

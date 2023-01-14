@@ -5,7 +5,6 @@ using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
 using Blish_HUD.Input;
-using BridgeHandler;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.ObjectModel;
@@ -268,7 +267,13 @@ namespace Torlando.SquadTracker
             _bridgeHandler.OnBridgeInfo += (info) => Logger.Info("[Bridge Information] CombatEnabled: {}, ExtrasEnabled: {}, ExtrasFound: {}, SquadEnabled: {}", info.CombatEnabled, info.ExtrasEnabled, info.ExtrasFound, info.SquadEnabled);
             _bridgeHandler.OnConnectInfo += (info) => Logger.Info("[ArcBridge Connection Status] Version: {}, API version: {}.{}, Success: {}, Err: {}", info.version, info.majorApiVersion, info.minorApiVersion, info.success, info.error);
             _bridgeHandler.OnConnectInfo += (info) => _squadManager.ConnectionStatusInfo(info);
-
+            _bridgeHandler.OnSquadMessageEvent += (msg) =>
+                Logger.Info(
+                    "[Chat Message] ChannelId: {}, Type: {}, Subgroup: {}, IsBroadcast: {}, Timestamp: {}, AccountName: {}, CharacterName: {}, Text: {}",
+                    msg.ChannelId, msg.Type, msg.Subgroup, msg.IsBroadcast, msg.Timestamp, msg.AccountName,
+                    msg.CharacterName, msg.Text);
+            _bridgeHandler.OnSquadMessageEvent += (msg) => _squadManager.HandleChatMessage(msg);
+            
             var sub = new Subscribe() { Extras = true, Squad = true, Protocol = MessageProtocol.Serial };
             _bridgeHandler.Start(sub);
 

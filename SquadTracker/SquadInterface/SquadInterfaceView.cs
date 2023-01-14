@@ -12,7 +12,7 @@ using Torlando.SquadTracker.RolesScreen;
 
 namespace Torlando.SquadTracker.SquadInterface
 {
-    internal class SquadInterfaceView : Container
+    public class SquadInterfaceView : Container
     {
         public SquadInterfaceView(PlayerIconsManager playerIconsManager, ICollection<Role> roles, AsyncTexture2D squad)
         {

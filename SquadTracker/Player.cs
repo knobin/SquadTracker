@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Torlando.SquadTracker
 {
-    internal class Player
+    public class Player
     {
         public delegate void RoleUpdateHandler(Player player);
 

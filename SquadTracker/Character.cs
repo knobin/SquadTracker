@@ -1,6 +1,6 @@
 ﻿namespace Torlando.SquadTracker
 {
-    internal class Character
+    public class Character
     {
         public Character(string name, uint profession, uint specialization = default)
         {

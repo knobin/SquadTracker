@@ -1,19 +1,20 @@
 ﻿//
-// From: https://github.com/knobin/arcdps_bridge/blob/main/examples/client.cs
+// Modified version of: https://github.com/knobin/arcdps_bridge/blob/main/examples/client.cs
 //
 // Requires the arcdps_bridge.dll to be present, together with ArcDPS, and ArcDPS Unofficial Extras.
 //
 
 using System;
+using System.IO.Pipes;
+using System.Linq;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
-using System.IO.Pipes;
-using System.Security.Principal;
 using Microsoft.IdentityModel.Tokens;
 
-namespace BridgeHandler
+namespace Torlando.SquadTracker
 {
-    internal class Subscribe
+    public class Subscribe
     {
         public bool Combat { get; set; }
         public bool Extras { get; set; }
@@ -21,7 +22,7 @@ namespace BridgeHandler
         public MessageProtocol Protocol { get; set; } = MessageProtocol.Serial;
     }
 
-    internal class BridgeInfo
+    public class BridgeInfo
     {
         public string extrasVersion { get; set; }
         public string arcVersion { get; set; }
@@ -33,7 +34,7 @@ namespace BridgeHandler
         public UInt32 extrasInfoVersion { get; set; }
     }
 
-    internal class ConnectionStatus
+    public class ConnectionStatus
     {
         public string version { get; set; }
         public UInt32 majorApiVersion { get; set; }
@@ -42,8 +43,8 @@ namespace BridgeHandler
         public bool success { get; set; }
         public string error { get; set; }
     }
-    
-    internal class ConnectionInfo
+
+    public class ConnectionInfo
     {
         public bool CombatEnabled { get; set; }
         public bool ExtrasEnabled { get; set; }
@@ -52,7 +53,7 @@ namespace BridgeHandler
         public BridgeInfo Info { get; set; }
     }
 
-    internal class cbtevent
+    public class cbtevent
     {
         public UInt64 time { get; set; }
         public UInt64 src_agent { get; set; }
@@ -79,7 +80,7 @@ namespace BridgeHandler
         public Byte is_offcycle { get; set; }
     }
 
-    internal class ag
+    public class ag
     {
         public string name { get; set; }
         public UInt64 id { get; set; }
@@ -89,7 +90,7 @@ namespace BridgeHandler
         public UInt16 team { get; set; }
     }
 
-    internal class PlayerInfo
+    public class PlayerInfo
     {
         public string accountName { get; set; }
         public string characterName { get; set; }
@@ -103,35 +104,47 @@ namespace BridgeHandler
         public bool readyStatus { get; set; }
     }
 
-    internal class PlayerInfoEntry
+    public class PlayerInfoEntry
     {
         public PlayerInfo player { get; set; }
         public UInt64 validator{ get; set; }
 }
 
-    internal class CombatEvent
+    public class CombatEvent
     {
-        UInt64 id { get; set; }
-        UInt64 revision { get; set; }
+        public UInt64 id { get; set; }
+        public UInt64 revision { get; set; }
         public cbtevent ev { get; set; }
         public ag src { get; set; }
         public ag dst { get; set; }
         public string skillname { get; set; }
     }
 
-    internal class SquadStatus
+    public class ChatMessageEvent
+    {
+        public UInt32 ChannelId { get; set; }
+        public Byte Type { get; set; }
+        public Byte Subgroup { get; set; }
+        public Byte IsBroadcast { get; set; }
+        public string Timestamp { get; set; }
+        public string AccountName { get; set; }
+        public string CharacterName { get; set; }
+        public string Text { get; set; }
+    }
+
+    public class SquadStatus
     {
         public string self { get; set; }
         public PlayerInfoEntry[] members { get; set; }
     }
 
-    internal enum MessageProtocol : Byte
+    public enum MessageProtocol : Byte
     {
         Serial  = 1,
         JSON    = 2
     }
 
-    internal class Handler
+    public class Handler
     {
         private class StatusEvent
         {
@@ -165,7 +178,7 @@ namespace BridgeHandler
             ExtrasSquadUpdate = 6,
             // ExtrasLanguageChanged = 7,   // TODO
             // ExtrasKeyBindChanged = 8,    // TODO
-            // ExtrasChatMessage = 9,       // TODO
+            ExtrasChatMessage = 9,          // TODO
 
             // Squad event types.
             SquadStatus = 10,
@@ -271,7 +284,8 @@ namespace BridgeHandler
         public event CombatMessage OnCombatEvent;
 
         // Unofficial Extras event.
-        // TODO.
+        public delegate void ExtrasSquadMessageHandler(ChatMessageEvent evt);
+        public event ExtrasSquadMessageHandler OnSquadMessageEvent;
 
         private class ThreadData
         {
@@ -558,13 +572,13 @@ namespace BridgeHandler
             var validator = BitConverter.ToUInt64(data, offset);
             offset += 8;
 
-            var version = ReadStringFromBytes(data, index);
+            var version = ReadStringFromBytes(data, offset);
             offset += version.Count;
 
-            var extras_version = ReadStringFromBytes(data, index);
+            var extras_version = ReadStringFromBytes(data, offset);
             offset += extras_version.Count;
 
-            var arc_version = ReadStringFromBytes(data, index);
+            var arc_version = ReadStringFromBytes(data, offset);
             offset += arc_version.Count;
 
             var extrasInfoVersion = BitConverter.ToUInt32(data, offset);
@@ -583,6 +597,53 @@ namespace BridgeHandler
                     extrasLoaded = BitConverter.ToBoolean(data, offset + 2),
                 },
                 Count = version.Count + extras_version.Count + arc_version.Count + 8 + 3
+            };
+
+            return serial;
+        }
+
+        private static SerialRead<ChatMessageEvent> ParseChatMessageSerial(byte[] data, int index)
+        {
+            var offset = index;
+            
+            var channelId = BitConverter.ToUInt32(data, offset);
+            offset += 4;
+
+            var type = data.ElementAt(offset);
+            offset += 1;
+            
+            var subgroup = data.ElementAt(offset);
+            offset += 1;
+            
+            var isBroadcast = data.ElementAt(offset);
+            offset += 1;
+            
+            var timestamp = ReadStringFromBytes(data, offset);
+            offset += timestamp.Count;
+
+            var account = ReadStringFromBytes(data, offset);
+            offset += account.Count;
+
+            var character = ReadStringFromBytes(data, offset);
+            offset += character.Count;
+            
+            var text = ReadStringFromBytes(data, offset);
+            offset += character.Count;
+            
+            var serial = new SerialRead<ChatMessageEvent>()
+            {
+                Data = new ChatMessageEvent()
+                {
+                    ChannelId = channelId,
+                    Type = type,
+                    Subgroup = subgroup,
+                    IsBroadcast = isBroadcast,
+                    Timestamp = timestamp.Data,
+                    AccountName = account.Data,
+                    CharacterName = character.Data,
+                    Text = text.Data
+                },
+                Count = 7 + timestamp.Count + account.Count + character.Count + text.Count // index - offset
             };
 
             return serial;
@@ -627,6 +688,12 @@ namespace BridgeHandler
                 }
                 case MessageCategory.Extras:
                 {
+                    if (header.type == MessageType.ExtrasChatMessage)
+                    {
+                        var msg = ParseChatMessageSerial(pipeData, headerOffset);
+                        tData.Handle.OnSquadMessageEvent?.Invoke(msg.Data);
+                    }
+                    
                     // TODO(knobin): Add Serial parsing for Extras events.
                     // tData.Handle.OnExtrasEvent?.Invoke(evt.extras);
                     break;

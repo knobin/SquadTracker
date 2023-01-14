@@ -5,6 +5,7 @@ using Torlando.SquadTracker.RolesScreen;
 using Torlando.SquadTracker.SquadPanel;
 using Torlando.SquadTracker.SearchPanel;
 using Blish_HUD;
+using Torlando.SquadTracker.ChatPanel;
 using Torlando.SquadTracker.LogPanel;
 
 namespace Torlando.SquadTracker.MainScreen
@@ -15,7 +16,6 @@ namespace Torlando.SquadTracker.MainScreen
         private readonly SquadManager _squadManager;
         private readonly PlayerIconsManager _iconsManager;
         private readonly ICollection<Role> _roles;
-        private readonly StLogger _stLogger;
 
         private SquadPanelView _squadView;
         private SquadPanelPresenter _squadPresenter;
@@ -23,6 +23,8 @@ namespace Torlando.SquadTracker.MainScreen
         private RolesPresenter _rolesPresenter;
         private LogView _logView;
         private LogPresenter _logPresenter;
+        private ChatView _squadChatView;
+        private ChatPresenter _squadChatPresenter;
 
         private static readonly Logger Logger = Logger.GetLogger<Module>();
 
@@ -32,7 +34,6 @@ namespace Torlando.SquadTracker.MainScreen
             _squadManager = squadManager;
             _iconsManager = iconsManager;
             _roles = roles;
-            _stLogger = stLogger;
 
             _squadView = new SquadPanelView(_roles);
             _squadPresenter = new SquadPanelPresenter(_squadView, _playersManager, _squadManager, _iconsManager, _roles);
@@ -41,7 +42,10 @@ namespace Torlando.SquadTracker.MainScreen
             _rolesPresenter = new RolesPresenter(_rolesView, _roles);
             
             _logView = new LogView();
-            _logPresenter = new LogPresenter(_logView, _stLogger);
+            _logPresenter = new LogPresenter(_logView, stLogger);
+            
+            _squadChatView = new ChatView();
+            _squadChatPresenter = new ChatPresenter(_squadChatView, _squadManager, _roles);
         }
 
         protected override void Unload()
@@ -53,7 +57,9 @@ namespace Torlando.SquadTracker.MainScreen
             _rolesView = null;
             _rolesPresenter = null;
             _logView = null; 
-            _logPresenter = null;
+            _logPresenter = null;  
+            _squadChatView = null; 
+            _squadChatPresenter = null;  
         }
 
         public IView SelectView(string name)
@@ -61,6 +67,7 @@ namespace Torlando.SquadTracker.MainScreen
             return name switch
             {
                 "Squad Members" => this.CreateSquadView(),
+                "Squad Chat" => this.CreateSquadChatView(),
                 "Squad Roles" => this.CreateRolesView(),
                 "Log" => this.CreateLogView(),
                 _ => this.CreateSquadView(),
@@ -73,6 +80,14 @@ namespace Torlando.SquadTracker.MainScreen
             // var presenter = new SquadPanelPresenter(view, _playersManager, _squadManager, _iconsManager, _roles);
             // return view.WithPresenter(presenter);
             return _squadView.WithPresenter(_squadPresenter);
+        }
+        
+        private IView CreateSquadChatView()
+        {
+            // var view = new SquadPanelView(_roles);
+            // var presenter = new SquadPanelPresenter(view, _playersManager, _squadManager, _iconsManager, _roles);
+            // return view.WithPresenter(presenter);
+            return _squadChatView.WithPresenter(_squadChatPresenter);
         }
 
         private IView CreateRolesView()
