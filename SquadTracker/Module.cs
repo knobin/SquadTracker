@@ -17,6 +17,7 @@ using Torlando.SquadTracker.RolesScreen;
 using Torlando.SquadTracker.SquadInterface;
 using Torlando.SquadTracker.SquadPanel;
 using Microsoft.Xna.Framework.Input;
+using Torlando.SquadTracker.ChatPanel;
 using Torlando.SquadTracker.LogPanel;
 
 namespace Torlando.SquadTracker
@@ -58,11 +59,14 @@ namespace Torlando.SquadTracker
         private AsyncTexture2D _squadTileTexture;
 
         public SettingEntry<KeyBinding> ToggleSquadInterface { get; private set; }
-        private SettingEntry<bool> _squadInterfaceShouldShow { get; set; }
+        private SettingEntry<bool> SquadInterfaceShouldShow { get; set; }
 
         public static SettingEntry<bool> PlayerWithRoleLeaveNotification { get; private set; }
         public static SettingEntry<bool> KeepPlayerRolesWhenRejoining { get; private set; }
         public static SettingEntry<bool> PrioritizeBoonsWhenSorting { get; private set; }
+        
+        private SettingEntry<int> SquadChatLogLimit { get; set; }
+        private SettingEntry<int> StLoggerLimit { get; set; }
 
         [ImportingConstructor]
         public Module([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -109,11 +113,11 @@ namespace Torlando.SquadTracker
                 () => "SquadInterface can be moved and dragged around when enabled."
             );
 
-            _squadInterfaceShouldShow = settings.DefineSetting(
+            SquadInterfaceShouldShow = settings.DefineSetting(
                 "SquadInterfaceShouldShow",
                 false
             );
-            _squadInterfaceShouldShow.SetDisabled(true);
+            SquadInterfaceShouldShow.SetDisabled(true);
 
             SquadInterfaceUseTileRoleColors = settings.DefineSetting(
                 "SquadInterfaceUseTileRoleColors",
@@ -136,6 +140,16 @@ namespace Torlando.SquadTracker
                 () => "Players with boons will be placed first in the subgroups."
             );
 
+            SquadChatLogLimit = settings.DefineSetting("SquadChatLogLimit",
+                100, () => "Limit in chat tab",
+                () => "Limit of how many entries in chat are allowed to be shown."
+            );
+            
+            StLoggerLimit = settings.DefineSetting("LoggerLimit",
+                100, () => "Limit in log tab",
+                () => "Limit of how many logs are allowed to be shown."
+            );
+
             SquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
             SquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
             SquadInterfaceUseTileRoleColors.SettingChanged += UpdateSquadInterfaceTileColor;
@@ -143,9 +157,12 @@ namespace Torlando.SquadTracker
             SquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
             ToggleSquadInterface.Value.Activated += UpdateToggleSquadInterface;
             PrioritizeBoonsWhenSorting.SettingChanged += UpdateBoonPrioritization;
-        }
 
-       
+            SquadChatLogLimit.SettingChanged += SquadChatLogLimitChange;
+            SquadChatLogLimit.SetRange(0, 250);
+            StLoggerLimit.SettingChanged += StLoggerLimitChange;
+            StLoggerLimit.SetRange(0, 250);
+        }
 
         /// <summary>
         /// Allows your module to perform any initialization it needs before starting to run.
@@ -232,6 +249,8 @@ namespace Torlando.SquadTracker
             UpdateSquadInterfaceMoving();
             EnableSquadInterface();
             UpdateBoonPrioritization();
+            SquadChatLogLimitChange();
+            StLoggerLimitChange();
 
             _bridgeHandler = new Handler();
             _playersManager = new PlayersManager(_bridgeHandler);
@@ -277,6 +296,8 @@ namespace Torlando.SquadTracker
             var sub = new Subscribe() { Extras = true, Squad = true, Protocol = MessageProtocol.Serial };
             _bridgeHandler.Start(sub);
 
+            ChatLog.Limit = 100;
+
             // Base handler must be called
             base.OnModuleLoaded(e);
 
@@ -289,7 +310,7 @@ namespace Torlando.SquadTracker
         {
             if (SquadInterfaceEnable.Value)
             {
-                if (GameService.GameIntegration.Gw2Instance.IsInGame && !GameService.Gw2Mumble.UI.IsMapOpen && _squadInterfaceShouldShow.Value)
+                if (GameService.GameIntegration.Gw2Instance.IsInGame && !GameService.Gw2Mumble.UI.IsMapOpen && SquadInterfaceShouldShow.Value)
                     _squadInterfaceView.Show();
                 else
                     _squadInterfaceView.Hide();
@@ -319,6 +340,9 @@ namespace Torlando.SquadTracker
             ToggleSquadInterface.Value.Activated -= UpdateToggleSquadInterface;
             PrioritizeBoonsWhenSorting.SettingChanged -= UpdateBoonPrioritization;
             
+            SquadChatLogLimit.SettingChanged -= SquadChatLogLimitChange;
+            StLoggerLimit.SettingChanged -= StLoggerLimitChange;
+            
             GameService.Overlay.BlishHudWindow.RemoveTab(_newTab);
         }
 
@@ -345,7 +369,7 @@ namespace Torlando.SquadTracker
         private void EnableSquadInterface(object sender = null, ValueChangedEventArgs<bool> e = null)
         {
             _squadInterfaceView.Visible = SquadInterfaceEnable.Value;
-            _squadInterfaceShouldShow.Value = _squadInterfaceView.Visible;
+            SquadInterfaceShouldShow.Value = _squadInterfaceView.Visible;
         }
         
         private void UpdateBoonPrioritization(object sender = null, ValueChangedEventArgs<bool> e = null)
@@ -357,9 +381,21 @@ namespace Torlando.SquadTracker
         {
             if (SquadInterfaceEnable.Value)
             {
-                _squadInterfaceShouldShow.Value = !_squadInterfaceView.Visible;
+                SquadInterfaceShouldShow.Value = !_squadInterfaceView.Visible;
                 _squadInterfaceView.Visible = !_squadInterfaceView.Visible;
             }
+        }
+        
+        private void SquadChatLogLimitChange(object sender = null, ValueChangedEventArgs<int> e = null)
+        {
+            ChatLog.Limit = SquadChatLogLimit.Value;
+            StLogger.Info("ChatLogLimit is now: {0}.", ChatLog.Limit);
+        }
+        
+        private void StLoggerLimitChange(object sender = null, ValueChangedEventArgs<int> e = null)
+        {
+            StLogger.Limit = StLoggerLimit.Value;
+            StLogger.Info("StLoggerLimit is now: {0}.", StLogger.Limit);
         }
     }
 

@@ -7,7 +7,7 @@ namespace Torlando.SquadTracker.LogPanel
     public class StLogger
     {
         private readonly List<string> _logs = new List<string>();
-        public const int Limit = 100;
+        public static int Limit = 100;
         
         public delegate void LogHandler(string message);
         public event LogHandler OnLog;

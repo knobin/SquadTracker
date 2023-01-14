@@ -8,8 +8,6 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json.Converters;
 using Torlando.SquadTracker.Helpers;
 using Torlando.SquadTracker.RolesScreen;
 

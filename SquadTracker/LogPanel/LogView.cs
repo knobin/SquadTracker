@@ -12,7 +12,7 @@ namespace Torlando.SquadTracker.LogPanel
         #region Controls
 
         private Panel _mainPanel;
-        private List<Label> _logs = new List<Label>();
+        private readonly List<Label> _logs = new List<Label>();
         private static readonly Logger Logger = Logger.GetLogger<Module>();
 
         #endregion
@@ -29,9 +29,8 @@ namespace Torlando.SquadTracker.LogPanel
                 ShowBorder = true,
                 Location = new Point(buildPanel.ContentRegion.Left, buildPanel.ContentRegion.Top),
                 Size = new Point(buildPanel.ContentRegion.Width, buildPanel.ContentRegion.Height),
-                Title = "LogView"
+                Title = "Logs"
             };
-            
         }
 
         protected override void Unload()
@@ -39,9 +38,15 @@ namespace Torlando.SquadTracker.LogPanel
             Logger.Info("Unloading LogView");
             
             foreach (var label in _logs) 
+            {
+                label.Parent = null;
                 label.Dispose();
+            }
             
             _logs.Clear();
+            
+            _mainPanel.Parent = null;
+            _mainPanel.Dispose();
         }
         
         public int Count()

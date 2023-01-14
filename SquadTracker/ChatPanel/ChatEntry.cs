@@ -54,6 +54,10 @@ namespace Torlando.SquadTracker.ChatPanel
 
         protected override void DisposeControl()
         {
+            _timestamp.Parent = null;
+            _name.Parent = null;
+            _text.Parent = null;
+            
             _timestamp.Dispose();
             _name.Dispose();
             _text.Dispose();

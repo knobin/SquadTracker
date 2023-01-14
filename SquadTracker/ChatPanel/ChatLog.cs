@@ -6,7 +6,7 @@ namespace Torlando.SquadTracker.ChatPanel
     public class ChatLog
     {
         private readonly List<ChatMessageEvent> _messages = new List<ChatMessageEvent>();
-        public const int Limit = 100;
+        public static int Limit = 100;
         
         public delegate void MessageHandler(ChatMessageEvent message);
         public event MessageHandler OnMessageEvent;
@@ -20,7 +20,7 @@ namespace Torlando.SquadTracker.ChatPanel
             OnMessageEvent?.Invoke(_messages.Last());
         }
 
-        public List<ChatMessageEvent> Messages()
+        public IEnumerable<ChatMessageEvent> Messages()
         {
             return _messages;
         }

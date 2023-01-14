@@ -41,6 +41,13 @@ namespace Torlando.SquadTracker.ChatPanel
 
         private void HandleChatMessageEvent(ChatMessageEvent evt)
         {
+            if (View.Count() >= ChatLog.Limit)
+            {
+                var diff = View.Count() - ChatLog.Limit + 1;
+                for (var i = 0; i < diff; ++i)
+                    View.RemoveFirst();
+            }
+
             View.DisplayChatMessage(_squadManager, _roles, evt.AccountName, evt.CharacterName, evt.Subgroup, evt.Timestamp, evt.Text);
         }
     }

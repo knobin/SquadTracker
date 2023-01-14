@@ -37,7 +37,11 @@ namespace Torlando.SquadTracker.LogPanel
         private void AddLog(string message)
         {
             if (View.Count() >= StLogger.Limit)
-                View.Pop();
+            {
+                var diff = View.Count() - StLogger.Limit + 1;
+                for (var i = 0; i < diff; ++i)
+                    View.Pop();
+            }
 
             View.Push(message);
         }
