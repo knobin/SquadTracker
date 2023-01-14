@@ -1,4 +1,5 @@
-﻿using Blish_HUD;
+﻿using System;
+using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
@@ -6,6 +7,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Configuration;
+using Blish_HUD.Settings;
 using Microsoft.IdentityModel.Tokens;
 using MonoGame.Extended.BitmapFonts;
 using Torlando.SquadTracker.RolesScreen;
@@ -14,7 +17,63 @@ namespace Torlando.SquadTracker.SquadInterface
 {
     public class SquadInterfaceView : Container
     {
-        public SquadInterfaceView(PlayerIconsManager playerIconsManager, ICollection<Role> roles, AsyncTexture2D squad)
+        public static IDictionary<string, SettingEntry<Color>> DefineColors(SettingCollection settings)
+        {
+            IDictionary<string, SettingEntry<Color>> entries = new Dictionary<string, SettingEntry<Color>>();
+            
+            entries.Add("SI_Color_Background", settings.DefineSetting(
+                "SI_Color_Background",
+                new Color(0, 0, 0, 25)
+            ));
+            
+            entries.Add("SI_Color_Bar", settings.DefineSetting(
+                "SI_Color_Bar",
+                new Color(18, 20, 22, 125)
+            ));
+            
+            entries.Add("SI_Color_Hover", settings.DefineSetting(
+                "SI_Color_Hover",
+                new Color(5, 5, 5, 75)
+            ));
+            
+            entries.Add("SI_Color_Border", settings.DefineSetting(
+                "SI_Color_Border",
+                new Color(6, 7, 8, 180)
+            ));
+            
+            entries.Add("SI_Color_Subgroup_Hover", settings.DefineSetting(
+                "SI_Color_Subgroup_Hover",
+                new Color(0, 0, 0, 100)
+            ));
+            
+            entries.Add("SI_Color_Subgroup_Color1", settings.DefineSetting(
+                "SI_Color_Subgroup_Color1",
+                new Color(20, 20, 20, 50)
+            ));
+            
+            entries.Add("SI_Color_Subgroup_Color2", settings.DefineSetting(
+                "SI_Color_Subgroup_Color2",
+                new Color(30, 30, 30, 50)
+            ));
+            
+            entries.Add("SI_Color_Search_Background", settings.DefineSetting(
+                "SI_Color_Search_Background",
+                new Color(20, 20, 20, 50)
+            ));
+            
+            entries.Add("SI_Color_Search_Focused", settings.DefineSetting(
+                "SI_Color_Search_Focused",
+                new Color(15, 15, 15, 225)
+            ));
+            entries.Add("SI_Color_Search_Hover", settings.DefineSetting(
+                "SI_Color_Search_Hover",
+                new Color(25, 25, 25, 175)
+            ));
+
+            return entries;
+        }
+        
+        public SquadInterfaceView(IDictionary<string, SettingEntry<Color>> colors, PlayerIconsManager playerIconsManager, ICollection<Role> roles, AsyncTexture2D squad)
         {
             Location = new Point(0, 0);
             Size = new Point(600, 600);
@@ -48,25 +107,84 @@ namespace Torlando.SquadTracker.SquadInterface
             ResizeBar();
             
             _searchbar.TextChanged += OnSearchInput;
+            
+            _settings = new SquadInterfaceSettingsView("Color Settings", _hoverColor, _bgColor, _borderColor)
+            {
+                Location = new Point(Right + 10, Top)
+            };
+            
+            foreach(var entry in colors)
+            {
+                var name = entry.Key.Substring(9);
+                _settings.AddColorEntry(name, entry.Value.Value, color =>
+                {
+                    // Callback when changed.
+                    ApplyColorChange(name, color);
+                });
+                
+                // Sets the saved value in startup.
+                ApplyColorChange(name, entry.Value.Value);
+            }
         }
+        
+        private void ApplyColorChange(string name, Color color)
+        {
+            name = "SI_Color_" + name;
+            
+            if (Module.SquadInterfaceColors.TryGetValue(name, out var entry))
+                entry.Value = color;
+            
+            IDictionary<string, Action> entries = new Dictionary<string, Action>();
+            
+            entries.Add("SI_Color_Background", () =>
+            {
+                _bgColor = color; 
+                _settings.BgColor = color;
+            });
+
+            entries.Add("SI_Color_Hover", () =>
+            {
+                _hoverColor = color;
+                _settings.HoverColor = color;
+            });
+            
+            entries.Add("SI_Color_Border", () => {  
+                _borderColor = color;
+                _settings.BorderColor = color; 
+            });
+            
+            entries.Add("SI_Color_Bar", () => {  _barColor = color; });
+            entries.Add("SI_Color_Subgroup_Hover", () => { _subgroupHoverColor = color; });
+            entries.Add("SI_Color_Subgroup_Color1", () => { _subgroupColor1 = color; });
+            entries.Add("SI_Color_Subgroup_Color2", () => { _subgroupColor2 = color; });
+            entries.Add("SI_Color_Search_Background", () => { _searchBackgroundColor = color; });
+            entries.Add("SI_Color_Search_Focused", () => { _searchFocusedColor = color; });
+            entries.Add("SI_Color_Search_Hover", () => { _searchHoverColor = color; });
+            
+            if (entries.TryGetValue(name, out var cEntry))
+                cEntry.Invoke();
+        }
+
+        private readonly SquadInterfaceSettingsView _settings;
 
         public bool EnableMoving = false;
         private Point _dragStart = new Point(0, 0);
         private bool _dragResizing;
         private bool _dragMoving;
+        private bool _shouldShowSettings = false;
 
         private readonly ICollection<Role> _roles;
 
-        private readonly Color _bgColor = new Color(0, 0, 0, 25);
-        private readonly Color _barColor = new Color(18, 20, 22, 125);
-        private readonly Color _hoverColor = new Color(5, 5, 5, 75);
-        private readonly Color _borderColor = new Color(6, 7, 8, 180);
-        private readonly Color _subgroupHoverColor = new Color(0, 0, 0, 100);
-        private readonly Color _subgroupColor1 = new Color(20, 20, 20, 50);
-        private readonly Color _subgroupColor2 = new Color(30, 30, 30, 50);
-        private readonly Color _searchBackgroundColor = new Color(20, 20, 20, 50);
-        private readonly Color _searchFocusedColor = new Color(15, 15, 15, 225);
-        private readonly Color _searchHoverColor = new Color(25, 25, 25, 175);
+        private Color _bgColor = new Color(0, 0, 0, 25);
+        private Color _barColor = new Color(18, 20, 22, 125);
+        private Color _hoverColor = new Color(5, 5, 5, 75);
+        private Color _borderColor = new Color(6, 7, 8, 180);
+        private Color _subgroupHoverColor = new Color(0, 0, 0, 100);
+        private Color _subgroupColor1 = new Color(20, 20, 20, 50);
+        private Color _subgroupColor2 = new Color(30, 30, 30, 50);
+        private Color _searchBackgroundColor = new Color(20, 20, 20, 50);
+        private Color _searchFocusedColor = new Color(15, 15, 15, 225);
+        private Color _searchHoverColor = new Color(25, 25, 25, 175);
 
         private readonly AsyncTexture2D _tileLoadedTexture;
         private readonly PlayerIconsManager _iconsManager;
@@ -272,7 +390,41 @@ namespace Torlando.SquadTracker.SquadInterface
 
             return 0;
         }
-        
+
+        protected override void OnShown(EventArgs e)
+        {
+            if (_shouldShowSettings)
+                ShowSettingsPanel(true);
+                
+            base.OnShown(e);
+        }
+
+        protected override void OnHidden(EventArgs e)
+        {
+            _settings.Visible = false;
+                    
+            base.OnHidden(e);
+        }
+
+        public void ShowSettingsPanel(bool visible)
+        {
+            _shouldShowSettings = visible;
+
+            if (!Visible) return;
+            
+            if (visible)
+            {
+                _settings.Location = new Point(Right + 10, Top);
+                _settings.Parent = GameService.Graphics.SpriteScreen;
+            }
+            else
+            {
+                _settings.Parent = null;
+            }
+            
+            _settings.Visible = visible;
+        }
+
         private void PaintBorder(SpriteBatch spriteBatch, Rectangle bounds, Color color, int thickness)
         {
             var rect = new Rectangle(bounds.Location, Point.Zero);
@@ -368,7 +520,16 @@ namespace Torlando.SquadTracker.SquadInterface
 
             UpdateTilePositions();
 
+            if (_settings != null)
+                _settings.Location = new Point(Right + 10, Top);
+            
             base.OnResized(e);
+        }
+        
+        protected override void OnMoved(MovedEventArgs e)
+        {
+            _settings.Location = new Point(Right + 10, Top);
+            base.OnMoved(e);
         }
 
         private bool InResizeArrowBounds(Point pos)

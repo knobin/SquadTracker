@@ -7,6 +7,7 @@ using Blish_HUD.Settings;
 using Blish_HUD.Input;
 using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.IO;
@@ -60,13 +61,16 @@ namespace Torlando.SquadTracker
 
         public SettingEntry<KeyBinding> ToggleSquadInterface { get; private set; }
         private SettingEntry<bool> SquadInterfaceShouldShow { get; set; }
+        private SettingEntry<bool> ShowSquadInterfaceSettings { get; set; }
 
         public static SettingEntry<bool> PlayerWithRoleLeaveNotification { get; private set; }
         public static SettingEntry<bool> KeepPlayerRolesWhenRejoining { get; private set; }
         public static SettingEntry<bool> PrioritizeBoonsWhenSorting { get; private set; }
-        
+
         private SettingEntry<int> SquadChatLogLimit { get; set; }
         private SettingEntry<int> StLoggerLimit { get; set; }
+        
+        public static IDictionary<string, SettingEntry<Color>> SquadInterfaceColors { get; private set; }
 
         [ImportingConstructor]
         public Module([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -149,6 +153,14 @@ namespace Torlando.SquadTracker
                 100, () => "Limit in log tab",
                 () => "Limit of how many logs are allowed to be shown."
             );
+            
+            ShowSquadInterfaceSettings = settings.DefineSetting(
+                "ShowSquadInterfaceSettings",
+                false, () => "Show SquadInterface Settings",
+                () => "When enabled shows a settings panel besides the SquadInterfaceView."
+            );
+
+            SquadInterfaceColors = SquadInterfaceView.DefineColors(settings);
 
             SquadInterfaceLocation.SettingChanged += UpdateSquadInterfaceLocation;
             SquadInterfaceSize.SettingChanged += UpdateSquadInterfaceSize;
@@ -157,6 +169,7 @@ namespace Torlando.SquadTracker
             SquadInterfaceMoving.SettingChanged += UpdateSquadInterfaceMoving;
             ToggleSquadInterface.Value.Activated += UpdateToggleSquadInterface;
             PrioritizeBoonsWhenSorting.SettingChanged += UpdateBoonPrioritization;
+            ShowSquadInterfaceSettings.SettingChanged += UpdateShowSquadInterfaceSettings;
 
             SquadChatLogLimit.SettingChanged += SquadChatLogLimitChange;
             SquadChatLogLimit.SetRange(0, 250);
@@ -240,7 +253,7 @@ namespace Torlando.SquadTracker
         {
             StLogger = new StLogger();
             
-            _squadInterfaceView = new SquadInterfaceView(_playerIconsManager, _customRoles, _squadTileTexture)
+            _squadInterfaceView = new SquadInterfaceView(SquadInterfaceColors, _playerIconsManager, _customRoles, _squadTileTexture)
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
@@ -251,6 +264,7 @@ namespace Torlando.SquadTracker
             UpdateBoonPrioritization();
             SquadChatLogLimitChange();
             StLoggerLimitChange();
+            UpdateShowSquadInterfaceSettings();
 
             _bridgeHandler = new Handler();
             _playersManager = new PlayersManager(_bridgeHandler);
@@ -343,6 +357,8 @@ namespace Torlando.SquadTracker
             SquadChatLogLimit.SettingChanged -= SquadChatLogLimitChange;
             StLoggerLimit.SettingChanged -= StLoggerLimitChange;
             
+            ShowSquadInterfaceSettings.SettingChanged -= UpdateShowSquadInterfaceSettings;
+            
             GameService.Overlay.BlishHudWindow.RemoveTab(_newTab);
         }
 
@@ -364,6 +380,11 @@ namespace Torlando.SquadTracker
         private void UpdateSquadInterfaceMoving(object sender = null, ValueChangedEventArgs<bool> e = null)
         {
             _squadInterfaceView.EnableMoving = SquadInterfaceMoving.Value;
+        }
+        
+        private void UpdateShowSquadInterfaceSettings(object sender = null, ValueChangedEventArgs<bool> e = null)
+        {
+            _squadInterfaceView.ShowSettingsPanel(ShowSquadInterfaceSettings.Value);
         }
 
         private void EnableSquadInterface(object sender = null, ValueChangedEventArgs<bool> e = null)

@@ -96,6 +96,8 @@
     <Compile Include="SearchPanel\SearchPanelPresenter.cs" />
     <Compile Include="SearchPanel\SearchPanelView.cs" />
     <Compile Include="SearchPanel\TaskQueue.cs" />
+    <Compile Include="SquadInterface\ColorSettingsEntry.cs" />
+    <Compile Include="SquadInterface\SquadInterfaceSettingsView.cs" />
     <Compile Include="SquadInterface\SquadInterfaceSubgroup.cs" />
     <Compile Include="SquadInterface\SquadInterfaceTile.cs" />
     <Compile Include="SquadInterface\SquadInterfaceView.cs" />
