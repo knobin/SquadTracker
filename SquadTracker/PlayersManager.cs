@@ -76,6 +76,12 @@ namespace Torlando.SquadTracker
             var playerInfo = entry.player;
             playerInfo.accountName = playerInfo.accountName.TrimStart(':');
 
+            if (entry.player.self && _players.TryGetValue(playerInfo.accountName, out var exist))
+            {
+                OnPlayerUpdate(entry);
+                return;
+            }
+
             if (!String.IsNullOrEmpty(playerInfo.characterName))
             {
                 if (_characters.TryGetValue(playerInfo.characterName, out var ch))
@@ -94,6 +100,7 @@ namespace Torlando.SquadTracker
 
             if (_players.TryGetValue(playerInfo.accountName, out var player))
             {
+                if (playerInfo.self && player.CurrentCharacter != null) character = player.CurrentCharacter;
                 Logger.Info("Assigning Character: \"{}\" : to user \"{}\"", (character != null) ? character.Name : "", playerInfo.accountName);
                 player.CurrentCharacter = character; // Assigns the character to known characters for player.
                 player.CurrentCharacter = (playerInfo.inInstance) ? character : null; // Sets current character to null if not in instance.
@@ -160,6 +167,8 @@ namespace Torlando.SquadTracker
 
         public void RemovePlayer(Player player)
         {
+            if (player.IsSelf) return;
+            
             foreach (var ch in player.KnownCharacters)
                 _characters.Remove(ch.Name);
             _players.Remove(player.AccountName);
@@ -177,8 +186,19 @@ namespace Torlando.SquadTracker
             if (playerInfo.self)
             {
                 Logger.Info("Removing self! {}. Clearing squad...", playerInfo.accountName);
+                _players.TryGetValue(playerInfo.accountName, out var self);
                 this.PlayerClear?.Invoke();
                 _players.Clear();
+                // if (self != null) _players.Add(self.AccountName, self);
+                if (self?.CurrentCharacter != null)
+                {
+                    entry.player.characterName = self.CurrentCharacter.Name;
+                    entry.player.profession = self.CurrentCharacter.Profession;
+                    entry.player.elite = self.CurrentCharacter.Specialization;
+                }
+                entry.player.subgroup = 1;
+                entry.player.role = 5;
+                OnPlayerAdd(entry);
             }
             else
             {
@@ -247,16 +267,17 @@ namespace Torlando.SquadTracker
 
                 if (_players.TryGetValue(playerInfo.accountName, out var player))
                 {
-                    if (player.Subgroup != playerInfo.subgroup)
-                    {
-                        subgroup = player.Subgroup;
-                        player.CurrentCharacter = null;
-                        player.Subgroup = playerInfo.subgroup;
-                        player.IsInInstance = playerInfo.inInstance;
-                        player.Role = playerInfo.role;
-                        player.JoinTime = playerInfo.joinTime;
-                        this.PlayerUpdated?.Invoke(player);
-                    }
+                    Character currentCharacter = null;
+                    if (playerInfo.self && player.CurrentCharacter != null) 
+                        currentCharacter = player.CurrentCharacter;
+                    
+                    subgroup = player.Subgroup;
+                    player.CurrentCharacter = currentCharacter;
+                    player.Subgroup = playerInfo.subgroup;
+                    player.IsInInstance = playerInfo.inInstance;
+                    player.Role = playerInfo.role;
+                    player.JoinTime = playerInfo.joinTime;
+                    this.PlayerUpdated?.Invoke(player);
                 }
             }
 
