@@ -29,6 +29,11 @@ namespace Torlando.SquadTracker.ChatPanel
             
             messages.Clear();
 
+            View.OnClearClick = () =>
+            {
+                _squadManager.GetChatLog().Clear();
+                Module.StLogger.Info("Cleared ChatLog.");
+            };
             _squadManager.GetChatLog().OnMessageEvent += HandleChatMessageEvent;
         }
 

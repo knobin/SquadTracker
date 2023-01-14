@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using Blish_HUD;
 using Blish_HUD.Graphics.UI;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace Torlando.SquadTracker.LogPanel
 {
@@ -24,6 +25,11 @@ namespace Torlando.SquadTracker.LogPanel
             
             logs.Clear();
 
+            View.OnClearClick = () =>
+            {
+                Module.StLogger.Clear();
+                Module.StLogger.Info("Cleared StLogger.");
+            };
             _stLogger.OnLog += AddLog;
         }
 

@@ -24,5 +24,10 @@ namespace Torlando.SquadTracker.ChatPanel
         {
             return _messages;
         }
+
+        public void Clear()
+        {
+            _messages.Clear();
+        }
     }
 }

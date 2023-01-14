@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -12,8 +13,11 @@ namespace Torlando.SquadTracker.LogPanel
         #region Controls
 
         private Panel _mainPanel;
+        private StandardButton _clearButton;
         private readonly List<Label> _logs = new List<Label>();
         private static readonly Logger Logger = Logger.GetLogger<Module>();
+        
+        public Action OnClearClick;
 
         #endregion
 
@@ -31,22 +35,45 @@ namespace Torlando.SquadTracker.LogPanel
                 Size = new Point(buildPanel.ContentRegion.Width, buildPanel.ContentRegion.Height),
                 Title = "Logs"
             };
+            _clearButton = new StandardButton
+            {
+                Parent = buildPanel,
+                Text = "Clear",
+                Location = new Point(_mainPanel.Right - 135, _mainPanel.Top + 5)
+            };
+            _clearButton.Click += OnClearClicked;
         }
 
         protected override void Unload()
         {
             Logger.Info("Unloading LogView");
             
-            foreach (var label in _logs) 
+            Clear();
+            
+            _clearButton.Click -= OnClearClicked;
+            
+            _clearButton.Parent = null;
+            _clearButton.Dispose();
+            
+            _mainPanel.Parent = null;
+            _mainPanel.Dispose();
+        }
+        
+        private void OnClearClicked(object sender, System.EventArgs e)
+        {
+            Clear();
+            OnClearClick?.Invoke();
+        }
+
+        private void Clear()
+        {
+            foreach (var label in _logs)
             {
                 label.Parent = null;
                 label.Dispose();
             }
             
             _logs.Clear();
-            
-            _mainPanel.Parent = null;
-            _mainPanel.Dispose();
         }
         
         public int Count()

@@ -144,6 +144,8 @@ namespace Torlando.SquadTracker.ChatPanel
         
         private void SetTooltipText(Player player)
         {
+            if (player == null) return;
+            
             var text = player.AccountName;
 
             text += " (";

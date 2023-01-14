@@ -30,5 +30,10 @@ namespace Torlando.SquadTracker.LogPanel
         {
             return _logs;
         }
+
+        public void Clear()
+        {
+            _logs.Clear();
+        }
     }
 }

@@ -30,7 +30,7 @@ namespace Torlando.SquadTracker.SquadPanel
         private bool _bridgeConnected = false;
         private string _bridgeError = Constants.Placeholder.BridgeHandlerErrorMessage;
 
-        private ChatLog _chatLog;
+        private readonly ChatLog _chatLog;
 
         public SquadManager(PlayersManager playersManager, SquadInterfaceView squadInterfaceView)
         {
