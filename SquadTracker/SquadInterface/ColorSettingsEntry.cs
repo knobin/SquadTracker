@@ -38,6 +38,8 @@ namespace Torlando.SquadTracker.SquadInterface
             Size = new Point(_name.Size.X + _textBox.Size.X, _textBox.Size.Y);
 
             _textBox.TextChanged += TextChanged;
+
+            _textBox.BasicTooltipText = "Accepted values [0, 255]";
         }
         
         protected override void DisposeControl()
