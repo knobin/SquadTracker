@@ -148,6 +148,8 @@ namespace Torlando.SquadTracker.SquadInterface
 
         protected override void Paint(SpriteBatch spriteBatch, Rectangle bounds)
         {
+            if (Player == null) return;
+            
             if (Player.IsInInstance)
                 spriteBatch.DrawOnCtrl(this, ForegroundTexture, bounds);
             else

@@ -10,16 +10,41 @@ using System.Linq;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
+using Blish_HUD;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Torlando.SquadTracker
 {
+    public enum MessageType : Byte
+    {
+        None        = 0,
+
+        // Info types.
+        ConnectionStatus  = 1,
+        BridgeInfo  = 2,
+        Status      = 3,
+        Closing     = 4,
+
+        // ArcDPS combat api types.
+        CombatEvent = 5,
+
+        // Extras event types.
+        ExtrasSquadUpdate = 6,
+        ExtrasLanguageChanged = 7, // TODO
+        ExtrasKeyBindChanged = 8, // TODO
+        ExtrasChatMessage = 9,
+
+        // Squad event types.
+        SquadStatus = 10,
+        SquadAdd    = 11,
+        SquadUpdate = 12,
+        SquadRemove = 13
+    }
+  
     public class Subscribe
     {
-        public bool Combat { get; set; }
-        public bool Extras { get; set; }
-        public bool Squad { get; set; }
         public MessageProtocol Protocol { get; set; } = MessageProtocol.Serial;
+        public MessageType[] Types { get; set; }
     }
 
     public class BridgeInfo
@@ -42,6 +67,7 @@ namespace Torlando.SquadTracker
         public BridgeInfo Info { get; set; }
         public bool success { get; set; }
         public string error { get; set; }
+        public string[] types { get; set; }
     }
 
     public class ConnectionInfo
@@ -131,6 +157,11 @@ namespace Torlando.SquadTracker
         public string CharacterName { get; set; }
         public string Text { get; set; }
     }
+    
+    public class LanguageChangedEvent
+    {
+        public Int32 Language { get; set; }
+    }
 
     public class SquadStatus
     {
@@ -159,32 +190,6 @@ namespace Torlando.SquadTracker
             Combat  = 2,
             Extras  = 4,
             Squad   = 8
-        }
-
-        private enum MessageType : Byte
-        {
-            None        = 0,
-
-            // Info types.
-            ConnectionStatus  = 1,
-            BridgeInfo  = 2,
-            Status      = 3,
-            Closing     = 4,
-
-            // ArcDPS combat api types.
-            CombatEvent = 5,
-
-            // Extras event types.
-            ExtrasSquadUpdate = 6,
-            // ExtrasLanguageChanged = 7,   // TODO
-            // ExtrasKeyBindChanged = 8,    // TODO
-            ExtrasChatMessage = 9,          // TODO
-
-            // Squad event types.
-            SquadStatus = 10,
-            SquadAdd    = 11,
-            SquadUpdate = 12,
-            SquadRemove = 13
         }
 
         private struct MessageHeader
@@ -293,7 +298,7 @@ namespace Torlando.SquadTracker
             public Handler Handle = null;
             public bool Run { get; set; } = false;
             public bool Connected { get; set; } = false;
-            public Byte EnabledCategories { get; set; }
+            public MessageType[] Types { get; set; }
             public MessageProtocol Protocol { get; set; }
         }
 
@@ -307,18 +312,11 @@ namespace Torlando.SquadTracker
             _tData = new ThreadData()
             {
                 Handle = this,
-                EnabledCategories = (Byte)MessageCategory.None,
                 Run = true,
                 Connected = false,
+                Types = subscribe.Types,
                 Protocol = subscribe.Protocol
             };
-            
-            if (subscribe.Combat)
-                _tData.EnabledCategories |= (Byte)MessageCategory.Combat;
-            if (subscribe.Extras)
-                _tData.EnabledCategories |= (Byte)MessageCategory.Extras;
-            if (subscribe.Squad)
-                _tData.EnabledCategories |= (Byte)MessageCategory.Squad;
 
             _t.Start(_tData);
         }
@@ -370,8 +368,16 @@ namespace Torlando.SquadTracker
                 return 4;
 
             // Send subscribe data to server.
-            var subscribe = tData.EnabledCategories;
-            var sub = "{\"subscribe\":" + subscribe.ToString() + ",\"protocol\":\"Serial\"}";
+            var req = new[] 
+            { 
+                MessageType.ConnectionStatus,
+                MessageType.BridgeInfo,
+                MessageType.Status,
+                MessageType.Closing 
+            };
+            var all = req.Concat(tData.Types).ToArray();
+            var sub = "{\"subscribe\":[" + string.Join(",", all.Select(t => "\"" + t + "\"")) + "],\"protocol\":\"Serial\"}";
+            Logger.GetLogger<Module>().Info("[BridgeHandler] json: \"{}\"", sub);
             WriteToPipe(tData.ClientStream, sub);
 
             // Read return status.
@@ -396,8 +402,20 @@ namespace Torlando.SquadTracker
             if (tData.Protocol == MessageProtocol.JSON)
                 parseFunc = ParseMessageJSON;
 
+            var tries = 0;
             while (tData.Run)
             {
+                if (tries != 0)
+                {
+                    if (tries > 3)
+                    {
+                        tData.Run = false;
+                        continue;
+                    }
+                    Thread.Sleep(1000);
+                }
+                tries++;
+
                 tData.ClientStream = new NamedPipeClientStream(".", "arcdps-bridge", PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Impersonation);
                 if (tData.ClientStream == null)
                     continue;

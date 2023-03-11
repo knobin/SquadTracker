@@ -1,6 +1,6 @@
 {
   "name": "Squad Tracker (ArcBridge)",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "namespace": "Torlando.SquadTracker_ArcBridge",
   "package": "SquadTracker_ArcBridge.dll",
   "manifest_version": 1,

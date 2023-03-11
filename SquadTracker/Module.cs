@@ -298,7 +298,7 @@ namespace Torlando.SquadTracker
             _bridgeHandler.OnConnect += () => _squadManager.SetBridgeConnectionStatus(true);
             _bridgeHandler.OnDisconnect += () => _squadManager.SetBridgeConnectionStatus(false);
             _bridgeHandler.OnBridgeInfo += (info) => Logger.Info("[Bridge Information] CombatEnabled: {}, ExtrasEnabled: {}, ExtrasFound: {}, SquadEnabled: {}", info.CombatEnabled, info.ExtrasEnabled, info.ExtrasFound, info.SquadEnabled);
-            _bridgeHandler.OnConnectInfo += (info) => Logger.Info("[ArcBridge Connection Status] Version: {}, API version: {}.{}, Success: {}, Err: {}", info.version, info.majorApiVersion, info.minorApiVersion, info.success, info.error);
+            _bridgeHandler.OnConnectInfo += (info) => Logger.Info("[ArcBridge Connection Status] Version: {}, API version: {}.{}, Success: {}, Err: {}, Types: [{}]", info.version, info.majorApiVersion, info.minorApiVersion, info.success, info.error, info.types);
             _bridgeHandler.OnConnectInfo += (info) => _squadManager.ConnectionStatusInfo(info);
             _bridgeHandler.OnSquadMessageEvent += (msg) =>
                 Logger.Info(
@@ -306,8 +306,20 @@ namespace Torlando.SquadTracker
                     msg.ChannelId, msg.Type, msg.Subgroup, msg.IsBroadcast, msg.Timestamp, msg.AccountName,
                     msg.CharacterName, msg.Text);
             _bridgeHandler.OnSquadMessageEvent += (msg) => _squadManager.HandleChatMessage(msg);
+
+            var types = new[]
+            {
+                // Extras.
+                MessageType.ExtrasChatMessage,
+                
+                // Squad.
+                MessageType.SquadStatus,
+                MessageType.SquadAdd,
+                MessageType.SquadUpdate,
+                MessageType.SquadRemove
+            };
             
-            var sub = new Subscribe() { Extras = true, Squad = true, Protocol = MessageProtocol.Serial };
+            var sub = new Subscribe() {Protocol = MessageProtocol.Serial, Types = types};
             _bridgeHandler.Start(sub);
 
             ChatLog.Limit = 100;
